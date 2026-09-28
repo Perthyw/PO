@@ -1,0 +1,1 @@
+{"profile":"product-admin","sourceRoots":["dist"],"locale":"th-TH","canonicalMap":"UX-CONTRACT.md","requiredCapabilities":["Date","Form","Scrollbar","Toast","CRUD"],"ownership":{"Date":"typed"},"requiredCommands":["unit","syntax"],"commands":{"unit":"npm test","syntax":"npm run check"},"evidence":{"crudFullFlow":"test/database.test.mjs","failurePaths":"test/database.test.mjs"}}

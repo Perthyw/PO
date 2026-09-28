@@ -1,0 +1,63 @@
+# เชื่อม Supabase สำหรับ PO The Grands
+
+สถานะปัจจุบัน: ยังไม่มี Supabase project จริง จึงยังไม่ได้ทดสอบ Auth, REST, Edge Function หรือ RLS บนบริการจริง
+
+## ตั้งค่าครั้งแรก
+
+1. สร้าง Supabase project ใหม่สำหรับ PO The Grands โดยเฉพาะ อย่าใช้ project หรือตารางของ Grandhouse
+2. เปิด SQL Editor แล้วรัน `supabase/001_schema.sql` หนึ่งครั้ง
+3. ใน Authentication ปิดการสมัครสมาชิกสาธารณะ
+4. สร้างผู้ใช้เจ้าของหนึ่งบัญชีใน Authentication พร้อมรหัสผ่าน แล้วคัดลอก UUID
+5. เพิ่มโปรไฟล์เจ้าของ โดยแทนค่า UUID และอีเมลจริง:
+
+```sql
+insert into public.profiles(id, login_email, display_name, role)
+values ('UUID-OF-OWNER', 'owner@example.com', 'เจ้าของ', 'owner');
+```
+
+6. ติดตั้ง Supabase CLI และ login จากนั้น deploy Edge Function สำหรับให้เจ้าของสร้าง/เปลี่ยนรหัสผ่านออฟฟิศ:
+
+```sh
+supabase link --project-ref YOUR_PROJECT_REF
+supabase functions deploy manage-user
+supabase secrets set ALLOWED_ORIGINS=https://YOUR-WEB-DOMAIN
+```
+
+`SUPABASE_URL`, `SUPABASE_ANON_KEY` และ `SUPABASE_SERVICE_ROLE_KEY` ถูกใส่ให้ Edge Function โดย Supabase อย่านำ service-role key ไปไว้ในเว็บ
+
+7. ใส่ Project URL และ publishable key ใน `dist/config.js`:
+
+```js
+export const config = {
+  supabaseUrl: 'https://YOUR-PROJECT.supabase.co',
+  publishableKey: 'YOUR-PUBLISHABLE-KEY'
+};
+```
+
+8. Deploy `dist/` แล้วเข้าสู่ระบบด้วยอีเมลเจ้าของ เปิดเมนู “ผู้ใช้งาน” เพื่อสร้างชื่อผู้ใช้ออฟฟิศ เช่น `purchase.fai01` กำหนดรหัสผ่านตัวเลขหรือตัวอักษรอย่างน้อย 6 ตัว และเปิดสิทธิ์ “ดูและ Export รายงานรวม” ให้บัญชีหลัก
+
+หากมีหลายโดเมน ให้กำหนด `ALLOWED_ORIGINS` คั่นด้วย comma ต้องใส่ origin ตรงตัว เช่น `https://po.example.com` โดยไม่มี path
+
+## กติกาข้อมูลและสิทธิ์
+
+- ผู้มี profile อ่าน PO และประวัติทั้งหมดของทีมได้
+- ออฟฟิศเปิด PO และยืนยันรับสินค้า เจ้าของอนุมัติ ปฏิเสธ ปิด PO และจัดการบัญชีออฟฟิศ เฉพาะบัญชีออฟฟิศที่ได้รับสิทธิ์จึงดูและ Export รายงานรวมได้
+- ผู้ใช้ทั่วไปแก้ role หรือเพิ่ม profile เองไม่ได้ ผู้ไม่มี profile และ anonymous อ่านข้อมูลไม่ได้
+- browser เขียน PO ผ่าน RPC เท่านั้น ตารางธุรกรรมไม่อนุญาต direct insert/update/delete
+- ราคาที่กรอกเป็นยอดรวม VAT ต่อหน่วย ถ้าติ๊ก VAT ฐาน = round(ยอดรวม × 100/107) และ VAT = ยอดรวม − ฐาน เช่น 3,000 บาท → ฐาน 2,803.74 บาท + VAT 196.26 บาท
+- จำนวนทศนิยมได้ไม่เกิน 3 ตำแหน่ง ราคาทศนิยมได้ไม่เกิน 2 ตำแหน่ง สูงสุด 50 รายการต่อใบ
+- request UUID ป้องกันส่งซ้ำ; row lock และ version ป้องกันการทำรายการจากสถานะเก่า
+- วันที่ PO เลือกได้ เวลาเปิดและประวัติใช้เวลา server แล้วแสดงเป็นเวลาไทย
+- หาก Supabase ล้มเหลว ระบบแสดงข้อผิดพลาดและไม่ fallback เป็นข้อมูลสาธิต
+
+## ตรวจจริงก่อนใช้งาน
+
+- ทดสอบเจ้าของสร้าง/เปลี่ยนรหัสผ่านออฟฟิศ และออฟฟิศเข้าใช้ได้
+- ทดสอบ VAT 3,000 บาทให้ได้ฐาน 2,803.74 บาทและ VAT 196.26 บาททั้งหน้าเว็บและข้อมูลฐาน
+- ตรวจสิทธิ์ทุกขั้น รวมการเรียก RPC โดยตรง ผู้ไม่มี profile และ anonymous
+- ตรวจลำดับอนุมัติ รับสินค้า ปิดใบพร้อมใบกำกับ และเหตุผลเมื่อปฏิเสธ
+- ตรวจรายงานรายเดือนและเปิดไฟล์ `.xlsx` ที่ส่งออก
+- ทดลอง session หมดอายุ network timeout retry และสองหน้าจอแก้ใบเดียวกัน
+- ตรวจ Supabase Security Advisor และแผนสำรองข้อมูล
+
+อ้างอิง: [Supabase RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [Database functions](https://supabase.com/docs/guides/database/functions), [Edge Functions](https://supabase.com/docs/guides/functions), [Password Auth](https://supabase.com/docs/guides/auth/passwords)
