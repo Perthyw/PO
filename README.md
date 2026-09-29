@@ -25,6 +25,7 @@
 - [เปิดระบบในเครื่อง](#เปิดระบบในเครื่อง)
 - [เชื่อม Supabase](#เชื่อม-supabase)
 - [นำขึ้นใช้งานจริง](#นำขึ้นใช้งานจริง)
+- [แผนงาน 7 Task](#แผนงาน-7-task)
 - [การทดสอบ](#การทดสอบ)
 - [การสำรองและกู้ข้อมูล](#การสำรองและกู้ข้อมูล)
 - [โครงสร้างไฟล์](#โครงสร้างไฟล์)
@@ -488,6 +489,22 @@ export const config = {
 ```
 
 ห้ามใส่ Service Role key ในไฟล์นี้ อ่านรายละเอียดและ checklist ใน [SUPABASE-SETUP.md](SUPABASE-SETUP.md)
+
+## แผนงาน 7 Task
+
+ตารางนี้คือรายการงานที่ต้องเดินต่อ โดยแยกงานหลักกับงานย่อยให้เห็นในหน้าแรกของ README
+
+| Task ใหญ่ | งานย่อยหลัก | สถานะ |
+|---|---|---|
+| 1. ฐานข้อมูลและสิทธิ์ | migration, RLS, RPC, Auth owner, Edge Function | เตรียม migration แล้ว / ยังไม่ deploy Supabase |
+| 2. ตั้งค่าเว็บกับ Supabase | URL, Publishable key, session, error handling | ยังไม่ตั้งค่า production |
+| 3. Deploy เว็บ | โฮสต์, upload `dist/`, asset/MIME, rollback | ยังไม่ deploy |
+| 4. HTTPS และโดเมน | DNS, TLS, แยกจาก Grandhouse, mobile access | ยังไม่ตั้งค่า |
+| 5. Edge Function origin | `ALLOWED_ORIGINS`, CORS, owner token check | โค้ดพร้อม / ยังไม่ deploy และตรวจจริง |
+| 6. ทดสอบ production flow | ทุกบทบาท, lifecycle, VAT, report, notification, retry, responsive | PGlite 20/20 ผ่าน / production ยังไม่ทดสอบ |
+| 7. Backup และ security | backup/restore, Security Advisor, RPC grants, secret review | ยังไม่ดำเนินการ |
+
+รายละเอียด checklist ของแต่ละ Task ใหญ่และงานย่อยอยู่ในหัวข้อ [นำขึ้นใช้งานจริง](#นำขึ้นใช้งานจริง) ด้านล่าง
 
 ## นำขึ้นใช้งานจริง
 
