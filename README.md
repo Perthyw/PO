@@ -32,6 +32,61 @@
 - [ข้อจำกัดและสิ่งที่ยังไม่ทำ](#ข้อจำกัดและสิ่งที่ยังไม่ทำ)
 - [แก้ปัญหาเบื้องต้น](#แก้ปัญหาเบื้องต้น)
 
+## แผนงาน 7 Task และ Sub task
+
+รายการนี้อยู่ด้านบนของ README เพื่อให้ทีมเห็นแผนงานทันทีเมื่อเปิด repo
+
+### Task 1 — ฐานข้อมูลและสิทธิ์
+
+- [x] สร้าง migration สำหรับ `profiles`, `departments`, `purchase_orders`, `po_items`, `po_events`, `notifications` และ `po_commands`
+- [x] เขียน RLS, RPC, idempotency และ version check
+- [x] ทดสอบเจ้าของ, บัญชีหลัก, บัญชีทั่วไป, anonymous และบัญชีปิดใช้งานด้วย PGlite
+- [ ] Deploy migration ไป Supabase project จริง
+- [ ] สร้าง owner Auth user และ profile ด้วย UUID เดียวกัน
+- [ ] Deploy และตรวจ `manage-user` Edge Function
+
+### Task 2 — ตั้งค่าเว็บกับ Supabase
+
+- [ ] ใส่ Project URL ใน `dist/config.js`
+- [ ] ใส่ Publishable key โดยไม่ใส่ Service Role key
+- [ ] ตรวจ login, refresh token, session หมดอายุ และ network error
+- [ ] ยืนยันว่าเว็บ production ไม่ fallback ไปข้อมูล demo
+
+### Task 3 — Deploy เว็บ
+
+- [ ] เลือกโฮสต์และตัวตนเว็บไซต์ PO แยกจาก Grandhouse
+- [ ] Upload เนื้อหาภายใน `dist/` รวม `vendor/` และ favicon
+- [ ] ตรวจ MIME type, asset 404, console error และวิธีย้อน release
+
+### Task 4 — HTTPS และโดเมน
+
+- [ ] กำหนดโดเมนหรือ subdomain ของ PO
+- [ ] ตั้ง DNS และ TLS/HTTPS
+- [ ] ตรวจเปิดใช้งานจากมือถือและคอมพิวเตอร์โดยไม่มี certificate warning
+
+### Task 5 — Edge Function origin
+
+- [ ] ตั้ง `ALLOWED_ORIGINS` สำหรับ localhost และโดเมนจริง
+- [ ] ตรวจ CORS preflight และ origin ที่ไม่ได้รับอนุญาต
+- [ ] ตรวจ token และ role owner ฝั่ง server
+
+### Task 6 — ทดสอบ production flow
+
+- [x] ทดสอบอัตโนมัติ 20/20 ด้วย PGlite และ mock REST
+- [ ] ทดสอบเปิด PO หลายรายการและแผนกต่างกัน
+- [ ] ทดสอบ VAT/NON VAT, อนุมัติ, ปฏิเสธ, รับสินค้า, ปิดใบ และ invoice gate
+- [ ] ทดสอบบัญชีหลัก, บัญชีทั่วไป, รายงาน, Excel, notification และ retry
+- [ ] ตรวจ responsive, keyboard/focus, session expiry และ browser console บนเว็บจริง
+
+### Task 7 — Backup และ security
+
+- [ ] กำหนดผู้ดูแลและสิทธิ์เข้า Supabase Dashboard
+- [ ] ตั้งรอบ backup และทดสอบ restore ใน project แยก
+- [ ] ตรวจ Security Advisor, RLS, RPC grants และ secret exposure
+- [ ] วางขั้นตอน migration/rollback โดยไม่ลบข้อมูล production ทดลอง
+
+สถานะ `[x]` คือทำหรือทดสอบในซอร์สแล้ว ส่วน `[ ]` ต้องทำบน Supabase/เว็บจริงก่อนเปิดใช้งาน production รายละเอียด checklist แบบเต็มอยู่ในหัวข้อ [นำขึ้นใช้งานจริง](#นำขึ้นใช้งานจริง)
+
 ## ระบบนี้ใช้ทำอะไร
 
 PO The Grands ใช้แทนการส่งคำขอซื้อที่กระจัดกระจายอยู่ในแชตหรือกระดาษ โดยรวมข้อมูลสินค้า ผู้ขอซื้อ การอนุมัติ การรับสินค้า ใบกำกับภาษี และประวัติการดำเนินการไว้ในใบเดียว
