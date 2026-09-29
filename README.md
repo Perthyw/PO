@@ -45,6 +45,8 @@
 - [ ] สร้าง owner Auth user และ profile ด้วย UUID เดียวกัน
 - [ ] Deploy และตรวจ `manage-user` Edge Function
 
+สถานะการตรวจล่าสุด (2026-09-29): migration และกฎสิทธิ์ผ่าน `npm test` ครบ 20/20 และ `npm run check` ผ่านแล้ว ฐานข้อมูลจริงยังไม่ถูกติ๊กสำเร็จ เพราะ Supabase CLI 2.118.0 ต้องใช้ access token ก่อนจึงจะตรวจ project หรือทำ `db push --dry-run` ได้
+
 ### Task 2 — ตั้งค่าเว็บกับ Supabase
 
 - [ ] ใส่ Project URL ใน `dist/config.js`
