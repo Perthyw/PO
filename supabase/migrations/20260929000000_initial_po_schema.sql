@@ -11,6 +11,13 @@ create table public.profiles (
  unique(login_email),
  check(login_email=lower(login_email))
 );
+create table public.departments (
+ id uuid primary key default gen_random_uuid(),
+ name text not null unique check (length(btrim(name)) between 1 and 100 and name=btrim(name)),
+ created_at timestamptz not null default now(),
+ created_by uuid references public.profiles(id),
+ archived_at timestamptz
+);
 create sequence public.po_number_seq;
 create table public.purchase_orders (
  id uuid primary key default gen_random_uuid(),
@@ -34,6 +41,24 @@ create table public.purchase_orders (
 );
 create index po_status_date on public.purchase_orders(status,po_date desc,created_at desc);
 create index po_date on public.purchase_orders(po_date desc,created_at desc);
+create table public.po_items (
+ po_id uuid not null references public.purchase_orders(id),
+ line_no smallint not null check(line_no between 1 and 50),
+ department_id uuid not null references public.departments(id),
+ name text not null,
+ spec text not null,
+ source text not null,
+ note text not null default '',
+ qty numeric(12,3) not null check(qty>0),
+ unit text not null,
+ unit_price numeric(12,2) not null check(unit_price>0),
+ vat boolean not null,
+ base_cents bigint not null check(base_cents>0),
+ tax_cents bigint not null check(tax_cents>=0),
+ total_cents bigint not null check(total_cents=base_cents+tax_cents),
+ primary key(po_id,line_no)
+);
+create index po_items_department on public.po_items(department_id,po_id);
 create table public.po_events (
  id uuid primary key default gen_random_uuid(),
  po_id uuid not null references public.purchase_orders(id),
@@ -64,19 +89,23 @@ create table public.po_commands (
  primary key(actor_id,request_id)
 );
 alter table public.profiles enable row level security;
+alter table public.departments enable row level security;
 alter table public.purchase_orders enable row level security;
+alter table public.po_items enable row level security;
 alter table public.po_events enable row level security;
 alter table public.notifications enable row level security;
 alter table public.po_commands enable row level security;
-revoke all on public.profiles,public.purchase_orders,public.po_events,public.notifications,public.po_commands from anon,authenticated;
+revoke all on public.profiles,public.departments,public.purchase_orders,public.po_items,public.po_events,public.notifications,public.po_commands from anon,authenticated;
 revoke all on sequence public.po_number_seq from anon,authenticated;
-grant select on public.profiles,public.purchase_orders,public.po_events,public.notifications to authenticated;
+grant select on public.profiles,public.departments,public.purchase_orders,public.po_items,public.po_events,public.notifications to authenticated;
 grant update(read_at) on public.notifications to authenticated;
 create policy profile_self on public.profiles for select to authenticated using(id=(select auth.uid()) and deleted_at is null);
+create policy department_active_read on public.departments for select to authenticated using(exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.deleted_at is null));
 create policy po_team_read on public.purchase_orders for select to authenticated using(exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.deleted_at is null and (p.role='owner' or p.can_export_report or created_by=(select auth.uid()))));
+create policy po_items_team_read on public.po_items for select to authenticated using(exists(select 1 from public.purchase_orders po where po.id=po_items.po_id));
 create policy events_team_read on public.po_events for select to authenticated using(exists(select 1 from public.profiles p join public.purchase_orders po on po.id=po_events.po_id where p.id=(select auth.uid()) and p.deleted_at is null and (p.role='owner' or p.can_export_report or po.created_by=(select auth.uid()))));
-create policy notifications_self_read on public.notifications for select to authenticated using(recipient_id=(select auth.uid()));
-create policy notifications_self_update on public.notifications for update to authenticated using(recipient_id=(select auth.uid())) with check(recipient_id=(select auth.uid()));
+create policy notifications_self_read on public.notifications for select to authenticated using(recipient_id=(select auth.uid()) and exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.deleted_at is null));
+create policy notifications_self_update on public.notifications for update to authenticated using(recipient_id=(select auth.uid()) and exists(select 1 from public.profiles p where p.id=(select auth.uid()) and p.deleted_at is null)) with check(recipient_id=(select auth.uid()));
 
 create function public.create_po(p_items jsonb,p_po_date date,p_request_id uuid,p_department text default 'ออฟฟิศ') returns jsonb
 language plpgsql security definer set search_path='' as $$
@@ -84,14 +113,13 @@ declare
  a public.profiles%rowtype; p public.purchase_orders%rowtype; c public.po_commands%rowtype;
  i jsonb; normalized jsonb='[]'; payload jsonb; q numeric; unit_price numeric;
  base bigint; total bigint; sum_base bigint=0; sum_total bigint=0; vat boolean;
- item_name text; spec text; purchase_source text; note text; item_unit text;
+ item_name text; spec text; purchase_source text; note text; item_unit text; item_department text; department_id uuid;
 begin
  select * into a from public.profiles where id=auth.uid();
- if a.id is null or a.role<>'office' then raise exception 'เฉพาะออฟฟิศที่ได้รับสิทธิ์เท่านั้นที่เปิด PO ได้'; end if;
+ if a.id is null or a.deleted_at is not null or a.role<>'office' then raise exception 'เฉพาะออฟฟิศที่ได้รับสิทธิ์เท่านั้นที่เปิด PO ได้'; end if;
  if p_request_id is null then raise exception 'ไม่พบหมายเลขคำขอ'; end if;
  if p_po_date is null or p_po_date<'2000-01-01' or p_po_date>'2099-12-31' then raise exception 'วันที่ใบ PO ไม่ถูกต้อง'; end if;
- if length(btrim(coalesce(p_department,''))) not between 1 and 100 then raise exception 'ระบุแผนก/สาขา'; end if;
- payload=jsonb_build_object('action','create','po_date',p_po_date,'items',p_items);
+ payload=jsonb_build_object('action','create','po_date',p_po_date,'items',p_items,'department',p_department);
  perform pg_advisory_xact_lock(hashtextextended(a.id::text||p_request_id::text,0));
  select * into c from public.po_commands where actor_id=a.id and request_id=p_request_id;
  if found then
@@ -103,6 +131,9 @@ begin
  for i in select value from jsonb_array_elements(p_items) loop
   item_name=btrim(coalesce(i->>'name','')); spec=btrim(coalesce(i->>'spec',''));
   purchase_source=btrim(coalesce(i->>'source','')); note=btrim(coalesce(i->>'note','')); item_unit=btrim(coalesce(i->>'unit',''));
+  item_department=btrim(coalesce(i->>'department',p_department,''));
+  select id into department_id from public.departments where name=item_department and archived_at is null;
+  if department_id is null then raise exception 'เลือกแผนก/สาขาที่มีในระบบสำหรับทุกรายการ'; end if;
   if length(item_name) not between 1 and 200 or length(spec) not between 1 and 2000 then raise exception 'ระบุชื่อสินค้าและสเปคให้ครบ'; end if;
   if length(purchase_source) not between 1 and 300 or length(note)>2000 then raise exception 'ระบุแหล่งซื้อและตรวจความยาวหมายเหตุ'; end if;
   if length(item_unit) not between 1 and 50 then raise exception 'ระบุหน่วยไม่เกิน 50 ตัวอักษร'; end if;
@@ -112,11 +143,15 @@ begin
   if q<=0 or q>1000000 or unit_price<=0 or unit_price>1000000000 then raise exception 'จำนวนหรือราคาอยู่นอกช่วงที่รองรับ'; end if;
   total=round(q*unit_price*100);base=case when vat then round(total*100.0/107.0) else total end;
   if total>100000000000 or base<=0 then raise exception 'ยอดต่อรายการต้องอยู่ระหว่าง 0.01 ถึง 1,000,000,000 บาท'; end if;
-  normalized=normalized||jsonb_build_array(jsonb_build_object('name',item_name,'spec',spec,'source',purchase_source,'note',note,'qty',q::text,'unit',item_unit,'unit_price',unit_price::text,'vat',vat,'base_cents',base,'tax_cents',total-base,'total_cents',total));
+  normalized=normalized||jsonb_build_array(jsonb_build_object('department',item_department,'name',item_name,'spec',spec,'source',purchase_source,'note',note,'qty',q::text,'unit',item_unit,'unit_price',unit_price::text,'vat',vat,'base_cents',base,'tax_cents',total-base,'total_cents',total));
   sum_base=sum_base+base;sum_total=sum_total+total;
  end loop;
  insert into public.purchase_orders(po_number,po_date,created_by,requester_name,department,items,base_cents,tax_cents,total_cents)
- values('PO-'||to_char(p_po_date,'YYYY')||'-'||lpad(nextval('public.po_number_seq')::text,6,'0'),p_po_date,a.id,a.display_name,btrim(p_department),normalized,sum_base,sum_total-sum_base,sum_total) returning * into p;
+ values('PO-'||to_char(p_po_date,'YYYY')||'-'||lpad(nextval('public.po_number_seq')::text,6,'0'),p_po_date,a.id,a.display_name,case when (select count(distinct value->>'department') from jsonb_array_elements(normalized))=1 then normalized->0->>'department' else 'หลายแผนก/สาขา' end,normalized,sum_base,sum_total-sum_base,sum_total) returning * into p;
+ insert into public.po_items(po_id,line_no,department_id,name,spec,source,note,qty,unit,unit_price,vat,base_cents,tax_cents,total_cents)
+ select p.id,ord::smallint,d.id,x.value->>'name',x.value->>'spec',x.value->>'source',x.value->>'note',(x.value->>'qty')::numeric,x.value->>'unit',(x.value->>'unit_price')::numeric,(x.value->>'vat')::boolean,(x.value->>'base_cents')::bigint,(x.value->>'tax_cents')::bigint,(x.value->>'total_cents')::bigint
+ from jsonb_array_elements(normalized) with ordinality as x(value,ord)
+ join public.departments d on d.name=x.value->>'department';
  insert into public.po_events(po_id,actor_id,actor_name,action) values(p.id,a.id,a.display_name,'create');
  insert into public.notifications(recipient_id,po_id,action,title,message)
  select id,p.id,'create','มีใบขอซื้อใหม่',a.display_name||' เปิด '||p.po_number
@@ -131,7 +166,7 @@ language plpgsql security definer set search_path='' as $$
 declare a public.profiles%rowtype;p public.purchase_orders%rowtype;c public.po_commands%rowtype;payload jsonb;next_status text;reason text=btrim(coalesce(p_reason,''));
 begin
  select * into a from public.profiles where id=auth.uid();
- if a.id is null then raise exception 'บัญชีนี้ไม่มีสิทธิ์ใช้งาน'; end if;
+ if a.id is null or a.deleted_at is not null then raise exception 'บัญชีนี้ไม่มีสิทธิ์ใช้งาน'; end if;
  if p_request_id is null or p_version is null then raise exception 'คำขอไม่ครบถ้วน'; end if;
  if p_action is null or p_action not in ('approve','reject','receive','close') then raise exception 'คำสั่งไม่ถูกต้อง'; end if;
  if (p_action='receive' and a.role<>'office') or (p_action in ('approve','reject','close') and a.role<>'owner') then raise exception 'บทบาทนี้ไม่มีสิทธิ์ทำรายการ'; end if;
@@ -144,6 +179,7 @@ begin
  end if;
  select * into p from public.purchase_orders where id=p_id for update;
  if not found then raise exception 'ไม่พบใบ PO'; end if;
+ if p_action='receive' and not (a.can_export_report or p.created_by=a.id) then raise exception 'รับสินค้าได้เฉพาะใบ PO ของตนเอง'; end if;
  if p.version<>p_version then raise exception 'สถานะเปลี่ยนแล้ว กรุณากลับรายการและโหลดข้อมูลล่าสุด'; end if;
  if length(reason)>2000 then raise exception 'เหตุผลต้องไม่เกิน 2,000 ตัวอักษร'; end if;
  if p_action in ('approve','reject') and p.status='pending' then
@@ -198,6 +234,25 @@ begin
  ) into result;
  return result;
 end $$;
-revoke all on function public.create_po(jsonb,date,uuid,text),public.act_on_po(uuid,text,integer,text,boolean,uuid),public.po_counts(boolean),public.monthly_po_report(date) from public,anon;
-grant execute on function public.create_po(jsonb,date,uuid,text),public.act_on_po(uuid,text,integer,text,boolean,uuid),public.po_counts(boolean),public.monthly_po_report(date) to authenticated;
+create function public.manage_department(p_action text,p_name text) returns void
+language plpgsql security definer set search_path='' as $$
+declare clean_name text=btrim(coalesce(p_name,''));
+begin
+ if not exists(select 1 from public.profiles where id=auth.uid() and role='office' and can_export_report and deleted_at is null) then
+  raise exception 'เฉพาะบัญชีออฟฟิศหลักที่จัดการแผนก/สาขาได้';
+ end if;
+ if length(clean_name) not between 1 and 100 then raise exception 'ระบุชื่อแผนก/สาขา 1–100 ตัวอักษร'; end if;
+ if p_action='add' then
+  insert into public.departments(name,created_by) values(clean_name,auth.uid())
+  on conflict(name) do update set archived_at=null;
+ elsif p_action='archive' then
+  update public.departments set archived_at=now() where name=clean_name and archived_at is null;
+  if not found then raise exception 'ไม่พบแผนก/สาขา'; end if;
+ else raise exception 'คำสั่งจัดการแผนก/สาขาไม่ถูกต้อง';
+ end if;
+end $$;
+insert into public.departments(name) values
+ ('อาหาร'),('ของหวาน'),('ผลไม้'),('ติ่มซำ'),('แซนวิช'),('สลัด'),('ครัวกลาง'),('แม่บ้าน'),('ออฟฟิศ'),('ช่าง'),('ภูดอย'),('บ้านโจ้'),('ท่ารั้ว');
+revoke all on function public.create_po(jsonb,date,uuid,text),public.act_on_po(uuid,text,integer,text,boolean,uuid),public.po_counts(boolean),public.monthly_po_report(date),public.manage_department(text,text) from public,anon;
+grant execute on function public.create_po(jsonb,date,uuid,text),public.act_on_po(uuid,text,integer,text,boolean,uuid),public.po_counts(boolean),public.monthly_po_report(date),public.manage_department(text,text) to authenticated;
 commit;

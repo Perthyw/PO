@@ -388,7 +388,11 @@ Supabase
 
 ### `purchase_orders`
 
-เก็บหัวใบ PO รายการสินค้าแบบ JSONB ยอดรวม สถานะ เวลา workflow และ version
+เก็บหัวใบ PO ยอดรวม สถานะ เวลา workflow และ version รวมทั้ง `items` แบบ JSONB ซึ่งเป็น snapshot สำหรับหน้าเว็บเดิมและรายงาน รายการสินค้าแก้ไขโดยตรงไม่ได้
+
+### `departments` และ `po_items`
+
+`departments` เก็บรายการแผนก/สาขา บัญชีออฟฟิศหลักเพิ่มหรือเก็บเข้าคลังได้ การเก็บเข้าคลังไม่ทำให้ประวัติใบเก่าหาย `po_items` เก็บสินค้าแต่ละบรรทัดพร้อมแผนก/สาขา จำนวน หน่วย ราคา และ VAT โดยอ้างอิงหัวใบ PO และแผนก การเปิด PO บันทึกทั้ง `po_items` และ JSONB snapshot ใน transaction เดียว
 
 ### `po_events`
 
@@ -408,6 +412,8 @@ Supabase
 - ผู้ใช้ที่ไม่มี profile เข้าใช้งานข้อมูลไม่ได้
 - เจ้าของและบัญชีหลักอ่าน PO ทุกคนได้
 - บัญชีทั่วไปอ่านเฉพาะ PO ที่ `created_by` เป็น UUID ของตนเอง
+- บัญชีทั่วไปยืนยันรับสินค้าได้เฉพาะ PO ที่ตนเปิด บัญชีหลักยืนยันแทนได้ และบัญชีที่ปิดใช้งานเรียก RPC ไม่ได้
+- สิทธิ์อ่าน `po_items` ตามสิทธิ์อ่านหัวใบ และการจัดการ `departments` ทำผ่าน RPC ของบัญชีหลัก
 - ประวัติ PO ใช้เงื่อนไขเดียวกับสิทธิ์อ่านหัวใบ
 - การแจ้งเตือนอ่านและแก้ `read_at` ได้เฉพาะผู้รับ
 - Browser ไม่มีสิทธิ์ insert/update/delete ตารางธุรกรรมโดยตรง
@@ -463,7 +469,7 @@ https://rhkilsnuqdkzwlncjvkj.supabase.co
 
 ขั้นตอนหลัก:
 
-1. รัน `supabase/001_schema.sql` ใน SQL Editor ของ project
+1. ตรวจ migration `supabase/migrations/20260929000000_initial_po_schema.sql` แล้ว link project PO ตาม `SUPABASE-SETUP.md` ใช้ `npx supabase db push --dry-run` ตรวจรายการเปลี่ยนแปลง ก่อน `npx supabase db push`
 2. ปิด public signup ใน Authentication
 3. สร้าง Auth user สำหรับเจ้าของ
 4. เพิ่มแถว owner ใน `public.profiles` โดยใช้ UUID จาก Auth
@@ -485,23 +491,71 @@ export const config = {
 
 ## นำขึ้นใช้งานจริง
 
-โฟลเดอร์ `dist/` พร้อม deploy เป็น static website โดยไม่ต้อง build
+โฟลเดอร์ `dist/` เป็น static website ที่ไม่ต้อง build แผนต่อไปนี้มี **7 งานหลัก** สถานะ `[x]` หมายถึงตรวจหรือเตรียมในซอร์สชุดนี้แล้ว ส่วน `[ ]` หมายถึงยังต้องทำหรือพิสูจน์บนบริการจริง การผ่าน PGlite และโหมดสาธิตไม่ใช่การผ่าน Supabase production
 
-1. เชื่อม Supabase และตรวจสิทธิ์จริงให้ครบ
-2. ใส่ Project URL และ Publishable key
-3. Upload เนื้อหาภายใน `dist/` เป็น root ของเว็บไซต์
-4. ตั้ง HTTPS
-5. เพิ่ม origin ของโดเมนจริงใน `ALLOWED_ORIGINS`
-6. ทดสอบ login, RLS, lifecycle, notification และ Export
-7. ตั้ง backup และตรวจ Supabase Security Advisor
+1. **เชื่อม Supabase และตรวจสิทธิ์จริง — เตรียมซอร์สแล้ว, ยังไม่ deploy**
 
-อ่านขั้นตอนละเอียดใน [DEPLOY.md](DEPLOY.md)
+   - [x] จัด schema เป็น migration ที่มี `profiles`, `departments`, `purchase_orders`, `po_items`, `po_events`, `notifications` และ `po_commands` พร้อม RLS/RPC
+   - [x] ทดสอบกฎธุรกิจ สิทธิ์ การรับสินค้าเฉพาะใบ และ transaction ด้วย PGlite แยกจากข้อมูลจริง
+   - [ ] ตรวจสภาพ project `rhkilsnuqdkzwlncjvkj` ว่ายังไม่มี schema นี้หรือ migration ที่ชนกัน และสำรองข้อมูลก่อนเปลี่ยนฐานหากมีข้อมูลอยู่แล้ว
+   - [ ] Link project, ตรวจ `db push --dry-run`, แล้วค่อย deploy migration ตาม [SUPABASE-SETUP.md](SUPABASE-SETUP.md)
+   - [ ] ปิด public signup, สร้าง Auth user เจ้าของ และเพิ่ม `profiles` ด้วย UUID เดียวกัน โดยไม่ใส่รหัสผ่านใน Git
+   - [ ] Deploy `manage-user` Edge Function แล้วตรวจบทบาทเจ้าของ/ออฟฟิศหลัก/ออฟฟิศทั่วไปและบัญชีที่ปิดใช้งานผ่าน API จริง
+   - **ปิดงานเมื่อ:** บัญชีทุกบทบาทเข้าใช้ได้ตามสิทธิ์ และการเรียก API/RPC ตรง ๆ ไม่ข้าม RLS หรือกฎสถานะ
+
+2. **ใส่ Project URL และ Publishable key — ยังไม่ดำเนินการ**
+
+   - [ ] นำ Project URL และ Publishable key ของ project PO ใส่ใน `dist/config.js`; ห้ามใส่ Secret/Service Role key
+   - [ ] ตรวจว่า URL/key ชี้ project PO เท่านั้น และเว็บเปลี่ยนจากโหมดสาธิตเป็นโหมด Supabase อย่างชัดเจน
+   - [ ] ทดสอบ login, refresh token, session หมดอายุ และกรณี network/Supabase ล้มเหลวว่าแสดงข้อผิดพลาดโดยไม่กลับไปใช้ข้อมูล demo
+   - **ปิดงานเมื่อ:** เว็บอ่านและเขียนข้อมูลใน project PO ตามสิทธิ์จริง และไม่แสดงเลข `DEMO-` สำหรับข้อมูลใหม่
+
+3. **เผยแพร่ไฟล์เว็บจาก `dist/` — ยังไม่ดำเนินการ**
+
+   - [ ] ยืนยันโฮสต์และตัวตนของเว็บไซต์ PO ที่จะใช้จริงก่อนเผยแพร่ เพื่อไม่สร้างเว็บซ้ำหรือทับ Grandhouse
+   - [ ] อัปโหลด *เนื้อหาภายใน* `dist/` เป็น root รวม `vendor/exceljs.min.js`, ใบอนุญาต, CSS, JS, config และ favicon; ไม่ต้องตั้ง build command
+   - [ ] ตรวจหน้าเริ่มต้นและทุก asset ว่าโหลดสำเร็จด้วย MIME type ที่ถูกต้อง ไม่มี 404 หรือ console error
+   - [ ] ตรวจเวอร์ชันไฟล์หลัง deploy และวิธีย้อนกลับไป release ก่อนหน้าเมื่อพบปัญหา
+   - **ปิดงานเมื่อ:** เว็บไซต์ PO เปิดได้จาก URL ที่เลือกและไฟล์ทั้งหมดมาจาก release เดียวกัน
+
+4. **ตั้ง HTTPS และโดเมน — ยังไม่ดำเนินการ**
+
+   - [ ] กำหนดโดเมน/ซับโดเมนของ PO แยกจาก Grandhouse และตั้ง DNS ให้ชี้โฮสต์ที่เลือก
+   - [ ] เปิดใบรับรอง TLS และตรวจว่า URL จริงใช้ HTTPS โดยไม่มี mixed content
+   - [ ] ตรวจการเข้าเว็บจากมือถือและคอมพิวเตอร์ รวมถึงการโหลดหน้าใหม่และกลับเข้าสู่ระบบ
+   - **ปิดงานเมื่อ:** URL จริงเปิดผ่าน HTTPS ได้สม่ำเสมอและไม่มีคำเตือนเรื่องใบรับรอง
+
+5. **กำหนด `ALLOWED_ORIGINS` ให้ Edge Function — ยังไม่ดำเนินการ**
+
+   - [ ] ใส่ origin ของเว็บ PO จริงแบบตรงตัว (`https://โดเมน` ไม่มี path) และ `http://localhost:4180` เฉพาะเมื่อยังต้องทดสอบในเครื่อง
+   - [ ] Deploy secret/config ของ `manage-user` แล้วตรวจ preflight CORS จาก origin ที่อนุญาต
+   - [ ] ทดสอบว่าหน้า “ผู้ใช้งาน” ของเจ้าของเรียก function ได้ และ origin อื่นไม่ได้รับอนุญาต
+   - **ปิดงานเมื่อ:** เจ้าของจัดการบัญชีจากเว็บจริงได้ โดย function ยังคงตรวจ token และบทบาทฝั่ง server
+
+6. **ทดสอบ flow จริงทุกบทบาท — ยังไม่ผ่านการทดสอบบน Supabase จริง**
+
+   - [ ] ทดสอบออฟฟิศทั่วไปเปิดใบหลายสินค้า เลือกแผนกต่างกัน วันที่ จำนวน หน่วย VAT และ NON VAT; ตรวจค่า 3,000 บาทเป็นฐาน 2,803.74 บาท + VAT 196.26 บาททั้งหน้าเว็บและฐาน
+   - [ ] ทดสอบเจ้าของอนุมัติ/ไม่อนุมัติพร้อมเหตุผล ออฟฟิศรับสินค้าครบ และเจ้าของปิดใบหลังยืนยันใบกำกับภาษี ทั้ง VAT และ NON VAT
+   - [ ] ทดสอบบัญชีหลักเห็นทุกใบ รับสินค้าแทน จัดการแผนก ดูรายงานรวม และ Export `.xlsx`; บัญชีทั่วไปเห็นเฉพาะใบตน
+   - [ ] ตรวจการแจ้งเตือน ประวัติผู้ทำ/เวลา การ retry ด้วย request ID เดิม และสองหน้าจอทำรายการบนใบเดียวกัน
+   - [ ] ตรวจ error, session หมดอายุ, หน้าแคบ, keyboard/focus, การเปิดไฟล์ Excel และ console/network log
+   - **ปิดงานเมื่อ:** บันทึกผลและหลักฐานใน [VERIFICATION.md](VERIFICATION.md) โดยแยกผล production ออกจาก demo/PGlite
+
+7. **ตั้ง backup และตรวจความปลอดภัย — ยังไม่ดำเนินการ**
+
+   - [ ] กำหนดผู้เข้าถึง Supabase Dashboard สิทธิ์ที่จำเป็น และผู้รับผิดชอบการสำรองข้อมูล
+   - [ ] กำหนดรอบเก็บ backup/ระยะเก็บ และทดลอง restore ลง project ทดสอบแยกก่อนใช้งานจริง
+   - [ ] ตรวจ Supabase Security Advisor, RLS ทุกตาราง, สิทธิ์ `EXECUTE` ของ RPC และการไม่เผย Secret/Service Role key
+   - [ ] วางวิธีเก็บ migration เวอร์ชันถัดไป ตรวจ `--dry-run` และ rollback/แก้ไขแบบ forward migration โดยไม่ทดลองลบข้อมูลบน production
+   - **ปิดงานเมื่อ:** กู้ข้อมูลจาก backup ที่ทดสอบได้และผลตรวจสิทธิ์/ความปลอดภัยไม่มีประเด็นค้างที่กระทบการเปิดใช้จริง
+
+ขั้นตอนเชื่อมและเผยแพร่เพิ่มเติมอยู่ใน [SUPABASE-SETUP.md](SUPABASE-SETUP.md) และ [DEPLOY.md](DEPLOY.md) ยังไม่มีข้อใดใน 7 งานหลักที่ถือว่าปิดงาน production แล้ว
 
 ## การทดสอบ
 
 สถานะล่าสุดในซอร์สชุดนี้:
 
-- `npm test` ผ่าน 17 tests
+- `npm test` ผ่าน 20 tests
 - `npm run check` ผ่าน
 - Strict UI audit: 0 findings
 - Database tests ใช้ PGlite ฐานใหม่แยกจากข้อมูลจริง
@@ -548,7 +602,8 @@ PO/
 │  ├─ favicon.svg           Logo
 │  └─ vendor/               ExcelJS และ license
 ├─ supabase/
-│  ├─ 001_schema.sql        ตาราง RLS RPC และ notification
+│  ├─ config.toml           ตั้งค่าโปรเจกต์สำหรับ Supabase CLI
+│  ├─ migrations/20260929000000_initial_po_schema.sql  ตาราง RLS RPC และ notification
 │  └─ functions/manage-user/
 │     ├─ index.ts           Edge Function จัดการผู้ใช้
 │     └─ config.toml        ปิด gateway verify เพื่อให้ฟังก์ชันตรวจ token เอง

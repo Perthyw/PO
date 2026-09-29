@@ -2,12 +2,13 @@
 
 ## อัตโนมัติ
 
-- `npm test`: 17/17 ผ่าน
+- `npm test`: 20/20 ผ่านใน PGlite และ mock REST
 - สูตร VAT ราคารวม 3,000 บาท: ฐาน 2,803.74 บาท, VAT 196.26 บาท, รวม 3,000.00 บาท
 - ครอบคลุม NON VAT, rounding, validation, วันที่ผิด, lifecycle, เหตุผลปฏิเสธ, invoice gate, monthly report permission, idempotency, RLS, anonymous/outsider, direct write denial และ atomic rollback
 - PostgreSQL ทดสอบด้วย PGlite ฐานใหม่แยกทุกครั้ง โดยจำลอง `auth.uid()` ไม่แตะฐานจริง
 - REST adapter ทดสอบด้วย mock fetch สำหรับ login, paging, create date/request UUID, monthly report, network failure และ session expiry
 - `npm run check` ผ่านสำหรับ `app.js`, `api.js`, `domain.js`, `export.js`
+- Strict UI audit รอบแก้ครั้งนี้: 0 findings
 - `npm audit --omit=dev` รายงาน 0 vulnerabilities ตอน vendoring ExcelJS
 
 ## Browser จริงในโหมดสาธิต
@@ -18,12 +19,14 @@
 - หน้ารายเดือนรวมยอดสถานะที่อนุมัติแล้วได้ 8,625.00 บาท และคำสั่ง Export Excel แสดงผลสำเร็จ
 - บัญชีเจ้าของเห็นหน้าจัดการบัญชีออฟฟิศ บัญชีออฟฟิศไม่เห็นเมนูนี้
 - เจ้าของไม่สามารถเรียกรายงานรวมได้ บัญชีออฟฟิศต้องได้รับ `can_export_report=true`; หน้าเว็บซ่อนเมนูและ RPC ตรวจสิทธิ์ซ้ำ
-- ตรวจ syntax และชุดทดสอบล่าสุด: 17 tests ผ่านทั้งหมด; strict UI audit 0 findings
+- รายการตรวจ browser ด้านล่างเป็นผลตรวจเดิมก่อนแก้ schema/หน้าแผนกครั้งนี้
 - ตรวจ viewport 390 × 844 แล้ว ฟอร์มและการ์ดไม่ล้นแนวนอน เมนูหลักเลื่อนได้และซ่อน scrollbar
 - browser console ไม่มี error หรือ warning ระหว่าง flow ที่ตรวจ
 
 ## สิ่งที่ยังต้องตรวจเมื่อมี Supabase
 
 สร้าง Supabase project แล้ว แต่ยังไม่ได้ deploy schema/Edge Function และยังไม่ได้พิสูจน์ Auth, REST/RPC, RLS, refresh token, multi-device, network failure หรือ production export กับข้อมูลจริง ต้องทำ checklist ใน `SUPABASE-SETUP.md` ก่อนใช้งานจริง
+
+การแก้ครั้งนี้ทดสอบการบันทึกแผนกแยกตามรายการสินค้า, สิทธิ์อ่าน `po_items`, การเพิ่มและเก็บแผนก, การห้ามออฟฟิศทั่วไปยืนยันรับสินค้าของคนอื่น และการปฏิเสธ RPC สำหรับบัญชีที่ปิดใช้งานใน PGlite แล้ว ยังไม่ได้ deploy migration หรือทดสอบ browser หลังแก้หน้าแผนก
 
 โหมดสาธิตมี login และการตั้งรหัสผ่านเพื่อทดลอง flow ข้อมูล PO และบัญชีอยู่ใน Local Storage ของ browser นี้และไม่ใช้แทน Supabase production

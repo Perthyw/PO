@@ -15,6 +15,7 @@ test('REST adapter: login, paging, create payload, report, failed network and ex
     if(url.includes('/token?'))return Response.json({access_token:'test-access',refresh_token:'test-refresh',expires_in:3600,user:{id:'office'}});
     if(url.includes('/profiles?'))return Response.json([{id:'office',role:'office',display_name:'ออฟฟิศ'}]);
     if(url.includes('/purchase_orders?'))return Response.json([],{headers:{'content-range':'10-19/24'}});
+    if(url.includes('/departments?'))return Response.json([{name:'อาหาร'},{name:'ออฟฟิศ'}]);
     if(url.includes('/rpc/create_po'))return Response.json({id:'created'});
     if(url.includes('/rpc/monthly_po_report'))return Response.json({rows:[],total_cents:0,ordered_count:0,pending_count:0,rejected_count:0});
     return Response.json({});
@@ -32,6 +33,11 @@ test('REST adapter: login, paging, create payload, report, failed network and ex
     assert.match(calls.at(-1).url,/offset=10/);
     assert.match(calls.at(-1).url,/status=eq.approved/);
     assert.equal(calls.at(-1).init.headers.Authorization,'Bearer test-access');
+    assert.deepEqual(await api.departments(),['อาหาร','ออฟฟิศ']);
+    await api.addDepartment('สาขาใหม่');
+    assert.deepEqual(JSON.parse(calls.at(-1).init.body),{p_action:'add',p_name:'สาขาใหม่'});
+    await api.archiveDepartment('สาขาใหม่');
+    assert.deepEqual(JSON.parse(calls.at(-1).init.body),{p_action:'archive',p_name:'สาขาใหม่'});
     const key=crypto.randomUUID();
     fail=true;
     await assert.rejects(()=>api.create([],'2026-09-25',key),/เชื่อมต่อไม่ได้/);

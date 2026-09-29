@@ -5,7 +5,7 @@
 ## ตั้งค่าครั้งแรก
 
 1. ใช้ Supabase project ของ PO The Grands โดยเฉพาะ อย่าใช้ project หรือตารางของ Grandhouse
-2. เปิด SQL Editor แล้วรัน `supabase/001_schema.sql` หนึ่งครั้ง
+2. ตรวจ migration `supabase/migrations/20260929000000_initial_po_schema.sql` และตรวจว่า project ยังไม่มี schema ชุดนี้ จากนั้นใช้ Supabase CLI กับ project นี้: `npx supabase login`, `npx supabase link --project-ref rhkilsnuqdkzwlncjvkj`, `npx supabase db push --dry-run`, แล้วจึง `npx supabase db push` เมื่อพร้อมนำขึ้นจริง ห้ามรัน migration เดียวกันซ้ำผ่าน SQL Editor
 3. ใน Authentication ปิดการสมัครสมาชิกสาธารณะ
 4. สร้างผู้ใช้เจ้าของหนึ่งบัญชีใน Authentication พร้อมรหัสผ่าน แล้วคัดลอก UUID
 5. เพิ่มโปรไฟล์เจ้าของ โดยแทนค่า UUID และอีเมลจริง:
@@ -45,6 +45,9 @@ export const config = {
 - ออฟฟิศเปิด PO และยืนยันรับสินค้า เจ้าของอนุมัติ ปฏิเสธ ปิด PO และจัดการบัญชีออฟฟิศ เฉพาะบัญชีออฟฟิศที่ได้รับสิทธิ์จึงดูและ Export รายงานรวมได้
 - ผู้ใช้ทั่วไปแก้ role หรือเพิ่ม profile เองไม่ได้ ผู้ไม่มี profile และ anonymous อ่านข้อมูลไม่ได้
 - browser เขียน PO ผ่าน RPC เท่านั้น ตารางธุรกรรมไม่อนุญาต direct insert/update/delete
+- `departments` เป็นรายการแผนก/สาขาที่บัญชีออฟฟิศหลักจัดการ การลบในหน้าเว็บเป็นการเก็บเข้าคลังเพื่อรักษาใบ PO เก่า แต่ไม่ให้เลือกในใบใหม่
+- `po_items` เก็บสินค้าทีละรายการพร้อมแผนก/สาขา และ `purchase_orders.items` เก็บ snapshot รูปแบบเดิมที่หน้าเว็บใช้ ทั้งคู่บันทึกพร้อมกันใน transaction ของ `create_po`; ห้ามแก้โดยตรง
+- ออฟฟิศทั่วไปยืนยันรับสินค้าได้เฉพาะใบที่ตนเปิด บัญชีหลักยืนยันแทนได้; บัญชีที่ปิดใช้งานเรียก RPC ไม่ได้
 - ราคาที่กรอกเป็นยอดรวม VAT ต่อหน่วย ถ้าติ๊ก VAT ฐาน = round(ยอดรวม × 100/107) และ VAT = ยอดรวม − ฐาน เช่น 3,000 บาท → ฐาน 2,803.74 บาท + VAT 196.26 บาท
 - จำนวนทศนิยมได้ไม่เกิน 3 ตำแหน่ง ราคาทศนิยมได้ไม่เกิน 2 ตำแหน่ง สูงสุด 50 รายการต่อใบ
 - request UUID ป้องกันส่งซ้ำ; row lock และ version ป้องกันการทำรายการจากสถานะเก่า

@@ -12,7 +12,7 @@ Deno.serve(async request=>{
   const userClient=createClient(url,anon,{global:{headers:{Authorization:authorization}}}),admin=createClient(url,service,{auth:{autoRefreshToken:false,persistSession:false}});
   const {data:{user},error:userError}=await userClient.auth.getUser();
   if(userError||!user)return json({message:'กรุณาเข้าสู่ระบบอีกครั้ง'},401,origin);
-  const {data:owner}=await admin.from('profiles').select('role').eq('id',user.id).maybeSingle();
+  const {data:owner}=await admin.from('profiles').select('role').eq('id',user.id).is('deleted_at',null).maybeSingle();
   if(owner?.role!=='owner')return json({message:'เฉพาะเจ้าของเท่านั้นที่จัดการผู้ใช้งานได้'},403,origin);
   let body;try{body=await request.json();}catch{return json({message:'ข้อมูลไม่ถูกต้อง'},400,origin);}
   if(body.action==='list'){
