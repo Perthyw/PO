@@ -42,7 +42,7 @@
 - [x] เขียน RLS, RPC, idempotency และ version check
 - [x] ทดสอบเจ้าของ, บัญชีหลัก, บัญชีทั่วไป, anonymous และบัญชีปิดใช้งานด้วย PGlite
 - [x] Deploy migration ไป Supabase project จริง
-- [ ] สร้าง owner Auth user และ profile ด้วย UUID เดียวกัน
+- [x] สร้าง owner Auth user และ profile ด้วย UUID เดียวกัน
 - [ ] Deploy และตรวจ `manage-user` Edge Function
 
 สถานะการตรวจล่าสุด (2026-09-29): migration และกฎสิทธิ์ผ่าน `npm test` ครบ 20/20 และ `npm run check` ผ่านแล้ว ตรวจ `db push --dry-run` และ deploy migration จริงสำเร็จ โดย `supabase migration list` ตรงกันที่ `20260929000000` แล้ว
@@ -553,16 +553,17 @@ export const config = {
 
 โฟลเดอร์ `dist/` เป็น static website ที่ไม่ต้อง build แผนต่อไปนี้มี **7 งานหลัก** สถานะ `[x]` หมายถึงตรวจหรือเตรียมในซอร์สชุดนี้แล้ว ส่วน `[ ]` หมายถึงยังต้องทำหรือพิสูจน์บนบริการจริง การผ่าน PGlite และโหมดสาธิตไม่ใช่การผ่าน Supabase production
 
-1. **เชื่อม Supabase และตรวจสิทธิ์จริง — deploy schema แล้ว, ยังเหลือ Auth/Edge Function**
+1. **เชื่อม Supabase และตรวจสิทธิ์จริง — schema/owner/function deploy แล้ว, เหลือทดสอบบทบาทผ่าน session จริง**
 
    - [x] จัด schema เป็น migration ที่มี `profiles`, `departments`, `purchase_orders`, `po_items`, `po_events`, `notifications` และ `po_commands` พร้อม RLS/RPC
    - [x] ทดสอบกฎธุรกิจ สิทธิ์ การรับสินค้าเฉพาะใบ และ transaction ด้วย PGlite แยกจากข้อมูลจริง
    - [x] ตรวจสภาพ project `rhkilsnuqdkzwlncjvkj` และยืนยันว่า migration ที่จะ deploy มีเพียง `20260929000000_initial_po_schema.sql`
    - [x] Link project, ตรวจ `db push --dry-run`, deploy migration และตรวจ `supabase migration list` ให้ local/remote ตรงกัน
-   - [ ] ปิด public signup, สร้าง Auth user เจ้าของ และเพิ่ม `profiles` ด้วย UUID เดียวกัน โดยไม่ใส่รหัสผ่านใน Git
+   - [x] ยืนยัน owner Auth user และเพิ่ม `profiles` ด้วย UUID เดียวกัน โดยไม่ใส่รหัสผ่านใน Git
    - [ ] Deploy `manage-user` Edge Function แล้วตรวจบทบาทเจ้าของ/ออฟฟิศหลัก/ออฟฟิศทั่วไปและบัญชีที่ปิดใช้งานผ่าน API จริง
      - [x] Deploy function, ตั้ง `ALLOWED_ORIGINS=http://localhost:4180` และทดสอบ CORS: origin ที่อนุญาตได้ `204`, origin อื่นได้ `403`
-     - [ ] ทดสอบ owner/office/disabled account หลังสร้าง owner profile จริง
+     - [x] ทดสอบคำขอที่ไม่มี session ถูกปฏิเสธด้วย `401`
+     - [ ] ทดสอบ owner/office/disabled account ผ่าน session จริง
    - **ปิดงานเมื่อ:** บัญชีทุกบทบาทเข้าใช้ได้ตามสิทธิ์ และการเรียก API/RPC ตรง ๆ ไม่ข้าม RLS หรือกฎสถานะ
 
 2. **ใส่ Project URL และ Publishable key — ยังไม่ดำเนินการ**
