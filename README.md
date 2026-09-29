@@ -561,6 +561,8 @@ export const config = {
    - [x] Link project, ตรวจ `db push --dry-run`, deploy migration และตรวจ `supabase migration list` ให้ local/remote ตรงกัน
    - [ ] ปิด public signup, สร้าง Auth user เจ้าของ และเพิ่ม `profiles` ด้วย UUID เดียวกัน โดยไม่ใส่รหัสผ่านใน Git
    - [ ] Deploy `manage-user` Edge Function แล้วตรวจบทบาทเจ้าของ/ออฟฟิศหลัก/ออฟฟิศทั่วไปและบัญชีที่ปิดใช้งานผ่าน API จริง
+     - [x] Deploy function, ตั้ง `ALLOWED_ORIGINS=http://localhost:4180` และทดสอบ CORS: origin ที่อนุญาตได้ `204`, origin อื่นได้ `403`
+     - [ ] ทดสอบ owner/office/disabled account หลังสร้าง owner profile จริง
    - **ปิดงานเมื่อ:** บัญชีทุกบทบาทเข้าใช้ได้ตามสิทธิ์ และการเรียก API/RPC ตรง ๆ ไม่ข้าม RLS หรือกฎสถานะ
 
 2. **ใส่ Project URL และ Publishable key — ยังไม่ดำเนินการ**
