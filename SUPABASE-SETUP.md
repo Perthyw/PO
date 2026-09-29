@@ -1,10 +1,10 @@
 # เชื่อม Supabase สำหรับ PO The Grands
 
-สถานะปัจจุบัน: ยังไม่มี Supabase project จริง จึงยังไม่ได้ทดสอบ Auth, REST, Edge Function หรือ RLS บนบริการจริง
+สถานะปัจจุบัน: สร้าง Supabase project แล้วที่ `https://rhkilsnuqdkzwlncjvkj.supabase.co` แต่ยังต้องรัน schema, สร้าง owner, deploy Edge Function, ใส่ Publishable key และทดสอบระบบจริงก่อนใช้งาน production
 
 ## ตั้งค่าครั้งแรก
 
-1. สร้าง Supabase project ใหม่สำหรับ PO The Grands โดยเฉพาะ อย่าใช้ project หรือตารางของ Grandhouse
+1. ใช้ Supabase project ของ PO The Grands โดยเฉพาะ อย่าใช้ project หรือตารางของ Grandhouse
 2. เปิด SQL Editor แล้วรัน `supabase/001_schema.sql` หนึ่งครั้ง
 3. ใน Authentication ปิดการสมัครสมาชิกสาธารณะ
 4. สร้างผู้ใช้เจ้าของหนึ่งบัญชีใน Authentication พร้อมรหัสผ่าน แล้วคัดลอก UUID
@@ -18,9 +18,10 @@ values ('UUID-OF-OWNER', 'owner@example.com', 'เจ้าของ', 'owner');
 6. ติดตั้ง Supabase CLI และ login จากนั้น deploy Edge Function สำหรับให้เจ้าของสร้าง/เปลี่ยนรหัสผ่านออฟฟิศ:
 
 ```sh
-supabase link --project-ref YOUR_PROJECT_REF
-supabase functions deploy manage-user
-supabase secrets set ALLOWED_ORIGINS=https://YOUR-WEB-DOMAIN
+npx supabase login
+npx supabase link --project-ref rhkilsnuqdkzwlncjvkj
+npx supabase functions deploy manage-user --no-verify-jwt
+npx supabase secrets set ALLOWED_ORIGINS=http://localhost:4180
 ```
 
 `SUPABASE_URL`, `SUPABASE_ANON_KEY` และ `SUPABASE_SERVICE_ROLE_KEY` ถูกใส่ให้ Edge Function โดย Supabase อย่านำ service-role key ไปไว้ในเว็บ
@@ -29,7 +30,7 @@ supabase secrets set ALLOWED_ORIGINS=https://YOUR-WEB-DOMAIN
 
 ```js
 export const config = {
-  supabaseUrl: 'https://YOUR-PROJECT.supabase.co',
+  supabaseUrl: 'https://rhkilsnuqdkzwlncjvkj.supabase.co',
   publishableKey: 'YOUR-PUBLISHABLE-KEY'
 };
 ```
@@ -40,7 +41,7 @@ export const config = {
 
 ## กติกาข้อมูลและสิทธิ์
 
-- ผู้มี profile อ่าน PO และประวัติทั้งหมดของทีมได้
+- เจ้าของและบัญชีออฟฟิศหลักอ่าน PO และประวัติของทุกคนได้ บัญชีออฟฟิศทั่วไปอ่านเฉพาะ PO ที่ตนเองเปิด
 - ออฟฟิศเปิด PO และยืนยันรับสินค้า เจ้าของอนุมัติ ปฏิเสธ ปิด PO และจัดการบัญชีออฟฟิศ เฉพาะบัญชีออฟฟิศที่ได้รับสิทธิ์จึงดูและ Export รายงานรวมได้
 - ผู้ใช้ทั่วไปแก้ role หรือเพิ่ม profile เองไม่ได้ ผู้ไม่มี profile และ anonymous อ่านข้อมูลไม่ได้
 - browser เขียน PO ผ่าน RPC เท่านั้น ตารางธุรกรรมไม่อนุญาต direct insert/update/delete

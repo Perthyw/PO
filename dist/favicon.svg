@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="กล่องแฟ้มเอกสาร">
+  <rect x="2" y="2" width="60" height="60" rx="14" fill="#fff7e6" stroke="#ffffff" stroke-width="2"/>
+  <path d="M18 18h10l3 3h15v22H18z" fill="#95baeb" stroke="#18324a" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M13 23h10l3 3h17v20H13z" fill="#e8c3bd" stroke="#18324a" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M22 14h10l3 3h15v27H22z" fill="#d8d7cb" stroke="#18324a" stroke-width="2" stroke-linejoin="round"/>
+  <path d="M9 29h18l4 4h24l-4 20H13z" fill="#72b8b5" stroke="#18324a" stroke-width="2.4" stroke-linejoin="round"/>
+  <path d="M9 29v22c0 1.1.9 2 2 2h40" fill="#f3f0e9" stroke="#18324a" stroke-width="2.4" stroke-linejoin="round"/>
+  <rect x="20" y="38" width="12" height="4" rx="2" fill="#60758a"/>
+</svg>
