@@ -2,7 +2,7 @@
 
 ระบบเปิด อนุมัติ และติดตามใบขอซื้อ (PO) สำหรับทีมจัดซื้อของ The Grands ทำงานแยกจากระบบ Grandhouse ทั้งซอร์สโค้ด บัญชีผู้ใช้ ฐานข้อมูล และการเผยแพร่ เว็บสำหรับพัฒนาในเครื่องทำงานที่ [http://localhost:4180](http://localhost:4180)
 
-> สถานะปัจจุบัน: สร้าง Supabase project แล้ว แต่เว็บยังไม่ได้ใส่ Publishable key และยังไม่ได้รัน schema/deploy Edge Function จึงยังทำงานในโหมดสาธิต ข้อมูลสาธิตอยู่เฉพาะ browser เครื่องนี้ ยังไม่ใช่ข้อมูลบน Supabase
+> สถานะปัจจุบัน: deploy schema และ `manage-user` ไป Supabase project PO แล้ว พร้อมตั้งค่าเว็บด้วย Publishable key; กำลังเริ่มทดสอบ login และ role จริง ข้อมูล production จะใช้ project นี้เท่านั้น
 
 ## สารบัญ
 
@@ -43,14 +43,16 @@
 - [x] ทดสอบเจ้าของ, บัญชีหลัก, บัญชีทั่วไป, anonymous และบัญชีปิดใช้งานด้วย PGlite
 - [x] Deploy migration ไป Supabase project จริง
 - [x] สร้าง owner Auth user และ profile ด้วย UUID เดียวกัน
-- [ ] Deploy และตรวจ `manage-user` Edge Function
+- [x] Deploy `manage-user` และตรวจ endpoint/CORS บน Supabase จริง
+- [ ] ตรวจสิทธิ์ owner, office และ disabled account ผ่าน session จริง
 
-สถานะการตรวจล่าสุด (2026-09-29): migration และกฎสิทธิ์ผ่าน `npm test` ครบ 20/20 และ `npm run check` ผ่านแล้ว ตรวจ `db push --dry-run` และ deploy migration จริงสำเร็จ โดย `supabase migration list` ตรงกันที่ `20260929000000` แล้ว
+สถานะการตรวจล่าสุด (2026-09-30): migration และกฎสิทธิ์ผ่าน `npm test` ครบ 20/20 และ `npm run check` ผ่านแล้ว ตรวจ `db push --dry-run` และ deploy migration จริงสำเร็จ โดย `supabase migration list` ตรงกันที่ `20260929000000`; `manage-user` deploy แล้ว, CORS ที่อนุญาตได้ 204, origin อื่นได้ 403 และคำขอที่ไม่มี session ได้ 401
 
 ### Task 2 — ตั้งค่าเว็บกับ Supabase
 
-- [ ] ใส่ Project URL ใน `dist/config.js`
-- [ ] ใส่ Publishable key โดยไม่ใส่ Service Role key
+- [x] ใส่ Project URL ใน `dist/config.js`
+- [x] ใส่ Publishable key โดยไม่ใส่ Service Role key
+- [x] ตรวจว่า URL/key ชี้ project PO และ local web ใช้ config นี้ (หน้าเว็บ, config และ Auth health ตอบ `200`)
 - [ ] ตรวจ login, refresh token, session หมดอายุ และ network error
 - [ ] ยืนยันว่าเว็บ production ไม่ fallback ไปข้อมูล demo
 
@@ -553,22 +555,20 @@ export const config = {
 
 โฟลเดอร์ `dist/` เป็น static website ที่ไม่ต้อง build แผนต่อไปนี้มี **7 งานหลัก** สถานะ `[x]` หมายถึงตรวจหรือเตรียมในซอร์สชุดนี้แล้ว ส่วน `[ ]` หมายถึงยังต้องทำหรือพิสูจน์บนบริการจริง การผ่าน PGlite และโหมดสาธิตไม่ใช่การผ่าน Supabase production
 
-1. **เชื่อม Supabase และตรวจสิทธิ์จริง — schema/owner/function deploy แล้ว, เหลือทดสอบบทบาทผ่าน session จริง**
+1. **เชื่อม Supabase และตรวจสิทธิ์จริง — schema, owner และ function deploy แล้ว, เหลือทดสอบบทบาทผ่าน session จริง**
 
    - [x] จัด schema เป็น migration ที่มี `profiles`, `departments`, `purchase_orders`, `po_items`, `po_events`, `notifications` และ `po_commands` พร้อม RLS/RPC
    - [x] ทดสอบกฎธุรกิจ สิทธิ์ การรับสินค้าเฉพาะใบ และ transaction ด้วย PGlite แยกจากข้อมูลจริง
    - [x] ตรวจสภาพ project `rhkilsnuqdkzwlncjvkj` และยืนยันว่า migration ที่จะ deploy มีเพียง `20260929000000_initial_po_schema.sql`
    - [x] Link project, ตรวจ `db push --dry-run`, deploy migration และตรวจ `supabase migration list` ให้ local/remote ตรงกัน
    - [x] ยืนยัน owner Auth user และเพิ่ม `profiles` ด้วย UUID เดียวกัน โดยไม่ใส่รหัสผ่านใน Git
-   - [ ] Deploy `manage-user` Edge Function แล้วตรวจบทบาทเจ้าของ/ออฟฟิศหลัก/ออฟฟิศทั่วไปและบัญชีที่ปิดใช้งานผ่าน API จริง
-     - [x] Deploy function, ตั้ง `ALLOWED_ORIGINS=http://localhost:4180` และทดสอบ CORS: origin ที่อนุญาตได้ `204`, origin อื่นได้ `403`
-     - [x] ทดสอบคำขอที่ไม่มี session ถูกปฏิเสธด้วย `401`
-     - [ ] ทดสอบ owner/office/disabled account ผ่าน session จริง
+   - [x] Deploy `manage-user` Edge Function, ตั้ง `ALLOWED_ORIGINS=http://localhost:4180` และทดสอบ endpoint: origin ที่อนุญาตได้ `204`, origin อื่นได้ `403`, คำขอไม่มี session ได้ `401`
+   - [ ] ทดสอบ owner/office/disabled account ผ่าน session จริง
    - **ปิดงานเมื่อ:** บัญชีทุกบทบาทเข้าใช้ได้ตามสิทธิ์ และการเรียก API/RPC ตรง ๆ ไม่ข้าม RLS หรือกฎสถานะ
 
-2. **ใส่ Project URL และ Publishable key — ยังไม่ดำเนินการ**
+2. **ใส่ Project URL และ Publishable key — ตั้งค่าแล้ว, รอทดสอบ session จริง**
 
-   - [ ] นำ Project URL และ Publishable key ของ project PO ใส่ใน `dist/config.js`; ห้ามใส่ Secret/Service Role key
+   - [x] นำ Project URL และ Publishable key ของ project PO ใส่ใน `dist/config.js`; ห้ามใส่ Secret/Service Role key
    - [ ] ตรวจว่า URL/key ชี้ project PO เท่านั้น และเว็บเปลี่ยนจากโหมดสาธิตเป็นโหมด Supabase อย่างชัดเจน
    - [ ] ทดสอบ login, refresh token, session หมดอายุ และกรณี network/Supabase ล้มเหลวว่าแสดงข้อผิดพลาดโดยไม่กลับไปใช้ข้อมูล demo
    - **ปิดงานเมื่อ:** เว็บอ่านและเขียนข้อมูลใน project PO ตามสิทธิ์จริง และไม่แสดงเลข `DEMO-` สำหรับข้อมูลใหม่

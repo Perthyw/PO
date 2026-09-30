@@ -1,6 +1,6 @@
 # เชื่อม Supabase สำหรับ PO The Grands
 
-สถานะปัจจุบัน: สร้าง Supabase project แล้วที่ `https://rhkilsnuqdkzwlncjvkj.supabase.co` แต่ยังต้องรัน schema, สร้าง owner, deploy Edge Function, ใส่ Publishable key และทดสอบระบบจริงก่อนใช้งาน production
+สถานะ ณ 2026-09-30: deploy migration `20260929000000_initial_po_schema.sql` แล้วและตรวจ migration history ตรงกัน; สร้าง owner Auth user/profile แล้ว; deploy `manage-user` และทดสอบ CORS/การปฏิเสธคำขอที่ไม่มี session แล้ว; ใส่ Project URL และ Publishable key ใน `dist/config.js` แล้ว เหลือทดสอบ login และ role ด้วย session จริง รวมทั้งตรวจการตั้งค่า signup ก่อนใช้งานจริง
 
 ## ตั้งค่าครั้งแรก
 

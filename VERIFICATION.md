@@ -1,4 +1,4 @@
-# ผลตรวจ PO The Grands — อัปเดต 29 กันยายน 2026
+# ผลตรวจ PO The Grands — อัปเดต 30 กันยายน 2026
 
 ## อัตโนมัติ
 
@@ -23,10 +23,15 @@
 - ตรวจ viewport 390 × 844 แล้ว ฟอร์มและการ์ดไม่ล้นแนวนอน เมนูหลักเลื่อนได้และซ่อน scrollbar
 - browser console ไม่มี error หรือ warning ระหว่าง flow ที่ตรวจ
 
-## สิ่งที่ยังต้องตรวจเมื่อมี Supabase
+## ตรวจ Supabase จริง ณ 30 กันยายน 2026
 
-สร้าง Supabase project แล้ว แต่ยังไม่ได้ deploy schema/Edge Function และยังไม่ได้พิสูจน์ Auth, REST/RPC, RLS, refresh token, multi-device, network failure หรือ production export กับข้อมูลจริง ต้องทำ checklist ใน `SUPABASE-SETUP.md` ก่อนใช้งานจริง
+- Project `rhkilsnuqdkzwlncjvkj`: `db push --dry-run` ผ่าน; migration `20260929000000` อยู่ทั้ง local และ remote
+- Owner Auth user/profile ถูกสร้างโดยใช้ UUID เดียวกัน (ไม่บันทึกข้อมูลรับรองลง Git)
+- `manage-user` deploy แล้ว; preflight จาก `http://localhost:4180` ได้ 204, origin อื่นได้ 403, ไม่มี session ได้ 401
+- `dist/config.js` ชี้ Project URL และ Publishable key ไปยัง project PO; local config และหน้าเว็บตอบ 200 และ Auth health endpoint ตอบ 200
+- ยังไม่ทดสอบ sign-in/session จริง, role owner/office/disabled ผ่าน session, refresh/expiry, RPC/RLS บน production, multi-device หรือ production export
+- ยังต้องยืนยันการปิด public signup ก่อนใช้งานจริง
 
-การแก้ครั้งนี้ทดสอบการบันทึกแผนกแยกตามรายการสินค้า, สิทธิ์อ่าน `po_items`, การเพิ่มและเก็บแผนก, การห้ามออฟฟิศทั่วไปยืนยันรับสินค้าของคนอื่น และการปฏิเสธ RPC สำหรับบัญชีที่ปิดใช้งานใน PGlite แล้ว ยังไม่ได้ deploy migration หรือทดสอบ browser หลังแก้หน้าแผนก
+การแก้ครั้งก่อนทดสอบการบันทึกแผนกแยกตามรายการสินค้า, สิทธิ์อ่าน `po_items`, การเพิ่มและเก็บแผนก, การห้ามออฟฟิศทั่วไปยืนยันรับสินค้าของคนอื่น และการปฏิเสธ RPC สำหรับบัญชีที่ปิดใช้งานใน PGlite แล้ว
 
 โหมดสาธิตมี login และการตั้งรหัสผ่านเพื่อทดลอง flow ข้อมูล PO และบัญชีอยู่ใน Local Storage ของ browser นี้และไม่ใช้แทน Supabase production
