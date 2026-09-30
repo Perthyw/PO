@@ -2,7 +2,7 @@
 
 ระบบเปิด อนุมัติ และติดตามใบขอซื้อ (PO) สำหรับทีมจัดซื้อของ The Grands ทำงานแยกจากระบบ Grandhouse ทั้งซอร์สโค้ด บัญชีผู้ใช้ ฐานข้อมูล และการเผยแพร่ เว็บสำหรับพัฒนาในเครื่องทำงานที่ [http://localhost:4180](http://localhost:4180)
 
-> สถานะปัจจุบัน: deploy schema และ `manage-user` ไป Supabase project PO แล้ว พร้อมตั้งค่าเว็บด้วย Publishable key; ทดสอบ owner/office, disabled login, session reload, refresh ด้วย Supabase จริง และ offline recovery แล้ว; งานเว็บ production จะตรวจหลัง Deploy ใน Task 3
+> สถานะปัจจุบัน: deploy schema และ `manage-user` ไป Supabase project PO แล้ว; ทดสอบ owner/office, disabled login, session reload, Supabase refresh และ offline recovery แล้ว; เผยแพร่เว็บ production release แรกแล้วที่ [PO The Grands](https://po-desk-office.grandsfoods.chatgpt.site) โดยคงสิทธิ์ owner-only เดิมไว้
 
 ## สารบัญ
 
@@ -66,10 +66,11 @@
 
 ### Task 3 — Deploy เว็บ
 
-- [ ] เลือกโฮสต์และตัวตนเว็บไซต์ PO แยกจาก Grandhouse
-- [ ] Upload เนื้อหาภายใน `dist/` รวม `vendor/` และ favicon
+- [x] ใช้ Sites project PO เดิมและ URL [po-desk-office.grandsfoods.chatgpt.site](https://po-desk-office.grandsfoods.chatgpt.site) แยกจาก Grandhouse
+- [x] Upload เนื้อหาภายใน `dist/` รวม `vendor/` และ favicon; release สำเร็จเมื่อ 2026-09-30, version `appgprj_6ab60a43e9d08191bb7b1b864ba539ed~appgver_78d2560221d08191ac2baf562e95880d`
 - [ ] ตรวจ MIME type, asset 404, console error และวิธีย้อน release
-- [ ] ตรวจเว็บ production หลัง Deploy ว่าไม่ fallback ไปข้อมูล demo เมื่อ Supabase ใช้งานไม่ได้
+- [ ] ทดสอบเว็บ production ว่าไม่ fallback ไปข้อมูล demo เมื่อ Supabase ใช้งานไม่ได้
+- [ ] ยืนยันสิทธิ์ให้พนักงานเข้าเว็บไซต์; ตอนนี้คงค่า owner-only ตาม Site เดิม
 
 ### Task 4 — HTTPS และโดเมน
 
@@ -589,13 +590,14 @@ export const config = {
    - [ ] ตรวจเว็บ production หลัง Deploy ว่าไม่ fallback ไป demo (Task 3)
    - **ปิดงานเมื่อ:** เว็บอ่านและเขียนข้อมูลใน project PO ตามสิทธิ์จริง และไม่แสดงเลข `DEMO-` สำหรับข้อมูลใหม่
 
-3. **เผยแพร่ไฟล์เว็บจาก `dist/` — ยังไม่ดำเนินการ**
+3. **เผยแพร่ไฟล์เว็บจาก `dist/` — release แรกสำเร็จ; production verification และสิทธิ์พนักงานยังค้าง**
 
-   - [ ] ยืนยันโฮสต์และตัวตนของเว็บไซต์ PO ที่จะใช้จริงก่อนเผยแพร่ เพื่อไม่สร้างเว็บซ้ำหรือทับ Grandhouse
-   - [ ] อัปโหลด *เนื้อหาภายใน* `dist/` เป็น root รวม `vendor/exceljs.min.js`, ใบอนุญาต, CSS, JS, config และ favicon; ไม่ต้องตั้ง build command
+   - [x] ใช้ Sites project PO เดิม ไม่สร้างเว็บซ้ำ; production URL คือ [https://po-desk-office.grandsfoods.chatgpt.site](https://po-desk-office.grandsfoods.chatgpt.site)
+   - [x] อัปโหลด *เนื้อหาภายใน* `dist/` เป็น root รวม `vendor/exceljs.min.js`, ใบอนุญาต, CSS, JS, config และ favicon; Sites บันทึก release แรกแล้ว
    - [ ] ตรวจหน้าเริ่มต้นและทุก asset ว่าโหลดสำเร็จด้วย MIME type ที่ถูกต้อง ไม่มี 404 หรือ console error
    - [ ] ตรวจเวอร์ชันไฟล์หลัง deploy และวิธีย้อนกลับไป release ก่อนหน้าเมื่อพบปัญหา
-   - **ปิดงานเมื่อ:** เว็บไซต์ PO เปิดได้จาก URL ที่เลือกและไฟล์ทั้งหมดมาจาก release เดียวกัน
+   - [ ] ตรวจ production ว่า Supabase error ไม่เปลี่ยนไปใช้ข้อมูล demo; ยืนยันสิทธิ์เจ้าหน้าที่ก่อนเปิดให้ใช้งาน
+   - **ปิดงานเมื่อ:** production URL และ assets ผ่านการตรวจ และผู้ใช้ที่ได้รับอนุญาตเปิดหน้าได้ตามที่ตั้งใจ
 
 4. **ตั้ง HTTPS และโดเมน — ยังไม่ดำเนินการ**
 

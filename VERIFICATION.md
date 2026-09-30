@@ -36,7 +36,8 @@
 - `dist/config.js` ชี้ Project URL และ Publishable key ไปยัง project PO; local config และหน้าเว็บตอบ 200 และ Auth health endpoint ตอบ 200
 - ทดสอบ sign-in, role owner/office, disabled-account login lockout, RLS read ด้วย office session เดิมหลังปิดบัญชี และ owner session persistence หลัง reload ผ่านหน้าเว็บจริงแล้ว; จำลองเวลาหมดอายุใน local session แล้ว reload พบว่า refresh token กับ Supabase สำเร็จและกลับรายการโดยไม่ถาม login ใหม่; ยังไม่ได้รอ JWT หมดอายุจริงตามเวลา รวมถึง production write RPC ทุกบทบาท, multi-device และ production export
 - Browser จริง (2026-09-30): ทดสอบ DevTools Network > Offline ขณะหน้า PO เปิดอยู่ หน้าแสดงข้อความเชื่อมต่อไม่ได้และปุ่ม “ลองโหลดใหม่” โดยไม่แสดงข้อมูล demo; คืนเป็น No throttling และกดลองใหม่แล้วกลับมาใช้งานได้
-- ตรวจ flow ใน source: เมื่อมี Supabase URL และ Publishable key จะใช้ Supabase API; API/network error ถูกส่งเป็นข้อผิดพลาดและไม่มีการสลับไป demo adapter. ยืนยันด้วย mock REST และ browser Offline จริง; การตรวจเว็บ production รอ Deploy ใน Task 3
+- ตรวจ flow ใน source: เมื่อมี Supabase URL และ Publishable key จะใช้ Supabase API; API/network error ถูกส่งเป็นข้อผิดพลาดและไม่มีการสลับไป demo adapter. ยืนยันด้วย mock REST และ browser Offline จริง; production fallback test ยังต้องรันหลังเปิด production URL
+- Sites production (2026-09-30): release แรกเผยแพร่สำเร็จจาก commit `1206d5b06db8d8710519505c2349b8bd2f2c5b77`; URL `https://po-desk-office.grandsfoods.chatgpt.site`; ใช้ Site เดิมและคงสิทธิ์ owner-only. Package validator ผ่าน; ยังไม่ได้ตรวจ browser production, MIME/404/console, rollback หรือ fallback ขณะ offline
 - ยังต้องยืนยันการปิด public signup ก่อนใช้งานจริง
 
 การแก้ครั้งก่อนทดสอบการบันทึกแผนกแยกตามรายการสินค้า, สิทธิ์อ่าน `po_items`, การเพิ่มและเก็บแผนก, การห้ามออฟฟิศทั่วไปยืนยันรับสินค้าของคนอื่น และการปฏิเสธ RPC สำหรับบัญชีที่ปิดใช้งานใน PGlite แล้ว
