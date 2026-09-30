@@ -2,7 +2,7 @@
 
 ระบบเปิด อนุมัติ และติดตามใบขอซื้อ (PO) สำหรับทีมจัดซื้อของ The Grands ทำงานแยกจากระบบ Grandhouse ทั้งซอร์สโค้ด บัญชีผู้ใช้ ฐานข้อมูล และการเผยแพร่ เว็บสำหรับพัฒนาในเครื่องทำงานที่ [http://localhost:4180](http://localhost:4180)
 
-> สถานะปัจจุบัน: deploy schema และ `manage-user` ไป Supabase project PO แล้ว พร้อมตั้งค่าเว็บด้วย Publishable key; ทดสอบ owner และ office ผ่านหน้าเว็บจริงแล้ว เหลือทดสอบบัญชี disabled และ session ด้านอื่นก่อนเปิด production ข้อมูล production จะใช้ project นี้เท่านั้น
+> สถานะปัจจุบัน: deploy schema และ `manage-user` ไป Supabase project PO แล้ว พร้อมตั้งค่าเว็บด้วย Publishable key; ทดสอบ owner, office และการปฏิเสธ login ของบัญชี disabled ผ่านหน้าเว็บจริงแล้ว ยังเหลือ session ด้านอื่นก่อนเปิด production ข้อมูล production จะใช้ project นี้เท่านั้น
 
 ## สารบัญ
 
@@ -47,9 +47,9 @@
 - [x] ทดสอบ owner login และเปิดหน้าจัดการบัญชีออฟฟิศผ่าน session จริง
 - [x] ทดสอบ office login, อ่านรายการ PO และเปิดฟอร์มสร้าง PO ผ่าน session จริง โดยไม่บันทึกข้อมูล
 - [x] ตรวจเมนูของ office: ไม่เห็นหน้าจัดการบัญชีผู้ใช้งาน
-- [ ] ปิดบัญชีทดสอบ แล้วตรวจว่า disabled account เข้าระบบ/อ่านข้อมูลไม่ได้ผ่าน session จริง
+- [x] ปิดบัญชีทดสอบ แล้วตรวจว่า disabled account เข้าระบบไม่ได้ผ่าน session จริง (`User is banned`)
 
-สถานะการตรวจล่าสุด (2026-09-30): migration และกฎสิทธิ์ผ่าน `npm test` ครบ 20/20 และ `npm run check` ผ่านแล้ว ตรวจ `db push --dry-run` และ deploy migration จริงสำเร็จ โดย `supabase migration list` ตรงกันที่ `20260929000000`; `manage-user` deploy แล้ว, CORS ที่อนุญาตได้ 204, origin อื่นได้ 403 และคำขอที่ไม่มี session ได้ 401; owner เปิดหน้าจัดการผู้ใช้ได้ และ office `qa.office01` login, อ่านรายการ PO และเปิดฟอร์มได้โดยไม่บันทึกรายการ ทั้งนี้ยังไม่ทดสอบการปฏิเสธ session ของบัญชีที่ปิดใช้งาน
+สถานะการตรวจล่าสุด (2026-09-30): migration และกฎสิทธิ์ผ่าน `npm test` ครบ 20/20 และ `npm run check` ผ่านแล้ว ตรวจ `db push --dry-run` และ deploy migration จริงสำเร็จ โดย `supabase migration list` ตรงกันที่ `20260929000000`; `manage-user` deploy แล้ว, CORS ที่อนุญาตได้ 204, origin อื่นได้ 403 และคำขอที่ไม่มี session ได้ 401; owner เปิดหน้าจัดการผู้ใช้ได้ และ office `qa.office01` login, อ่านรายการ PO และเปิดฟอร์มได้โดยไม่บันทึกรายการ; หลังปิดบัญชี หน้า login ปฏิเสธด้วย `User is banned` ยืนยันการห้าม login แล้ว แต่ไม่ได้ทดสอบอ่านข้อมูลด้วย session ที่ปิดใช้งาน
 
 ### Task 2 — ตั้งค่าเว็บกับ Supabase
 
