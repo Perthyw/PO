@@ -34,7 +34,7 @@
 - Owner Auth user/profile ถูกสร้างโดยใช้ UUID เดียวกัน (ไม่บันทึกข้อมูลรับรองลง Git)
 - `manage-user` deploy แล้ว; preflight จาก `http://localhost:4180` ได้ 204, origin อื่นได้ 403, ไม่มี session ได้ 401
 - `dist/config.js` ชี้ Project URL และ Publishable key ไปยัง project PO; local config และหน้าเว็บตอบ 200 และ Auth health endpoint ตอบ 200
-- ทดสอบ sign-in, role owner/office, disabled-account login lockout, RLS read ด้วย office session เดิมหลังปิดบัญชี และ owner session persistence หลัง reload ผ่านหน้าเว็บจริงแล้ว; session expiry จริงยังไม่ทดสอบ รวมถึง production write RPC ทุกบทบาท, multi-device และ production export
+- ทดสอบ sign-in, role owner/office, disabled-account login lockout, RLS read ด้วย office session เดิมหลังปิดบัญชี และ owner session persistence หลัง reload ผ่านหน้าเว็บจริงแล้ว; จำลองเวลาหมดอายุใน local session แล้ว reload พบว่า refresh token กับ Supabase สำเร็จและกลับรายการโดยไม่ถาม login ใหม่; ยังไม่ได้รอ JWT หมดอายุจริงตามเวลา รวมถึง production write RPC ทุกบทบาท, multi-device และ production export
 - Browser จริง (2026-09-30): ทดสอบ DevTools Network > Offline ขณะหน้า PO เปิดอยู่ หน้าแสดงข้อความเชื่อมต่อไม่ได้และปุ่ม “ลองโหลดใหม่” โดยไม่แสดงข้อมูล demo; คืนเป็น No throttling และกดลองใหม่แล้วกลับมาใช้งานได้
 - ตรวจ flow ใน source: เมื่อมี Supabase URL และ Publishable key จะใช้ Supabase API; API/network error ถูกส่งเป็นข้อผิดพลาดและไม่มีการสลับไป demo adapter. ยืนยันด้วย mock REST และ browser Offline จริง; การตรวจเว็บ production รอ Deploy ใน Task 3
 - ยังต้องยืนยันการปิด public signup ก่อนใช้งานจริง

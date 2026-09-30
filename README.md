@@ -2,7 +2,7 @@
 
 ระบบเปิด อนุมัติ และติดตามใบขอซื้อ (PO) สำหรับทีมจัดซื้อของ The Grands ทำงานแยกจากระบบ Grandhouse ทั้งซอร์สโค้ด บัญชีผู้ใช้ ฐานข้อมูล และการเผยแพร่ เว็บสำหรับพัฒนาในเครื่องทำงานที่ [http://localhost:4180](http://localhost:4180)
 
-> สถานะปัจจุบัน: deploy schema และ `manage-user` ไป Supabase project PO แล้ว พร้อมตั้งค่าเว็บด้วย Publishable key; Task 1 ผ่านการทดสอบ owner, office, disabled login และ session เดิมหลังปิดบัญชีแล้ว ยังเหลือทดสอบ session lifecycle และเตรียม production ข้อมูล production จะใช้ project นี้เท่านั้น
+> สถานะปัจจุบัน: deploy schema และ `manage-user` ไป Supabase project PO แล้ว พร้อมตั้งค่าเว็บด้วย Publishable key; ทดสอบ owner/office, disabled login, session reload, refresh ด้วย Supabase จริง และ offline recovery แล้ว; งานเว็บ production จะตรวจหลัง Deploy ใน Task 3
 
 ## สารบัญ
 
@@ -61,15 +61,15 @@
 - [x] ทดสอบจำลอง reload, refresh token ใกล้หมดอายุ, disabled profile และ network failure โดยคง session ไว้และไม่คืนข้อมูล demo ด้วย mock REST
 - [x] ทดสอบ owner login แล้ว reload หน้าเว็บจริง: session ยังอยู่และรายการ PO โหลดได้
 - [x] ทดสอบ network error บน browser จริงด้วย DevTools Offline: หน้า PO แจ้งว่าเชื่อมต่อไม่ได้ ไม่แสดงข้อมูล demo; เปลี่ยนกลับ No throttling แล้วกด “ลองโหลดใหม่” ข้อมูลกลับมา
-- [ ] ตรวจ session หมดอายุบน browser จริง
 - [x] ยืนยันว่าเว็บที่ตั้งค่า Supabase แล้วไม่ fallback ไปข้อมูล demo เมื่อ API ล้มเหลว (ทดสอบ Offline จริงและ mock REST)
-- [ ] ทดสอบว่าเว็บ production ไม่ fallback ไปข้อมูล demo หลัง Deploy (ทำต่อใน Task 3)
+- [x] จำลอง session หมดอายุใน browser แล้วตรวจว่า refresh token กับ Supabase สำเร็จและกลับหน้ารายการโดยไม่ login ใหม่
 
 ### Task 3 — Deploy เว็บ
 
 - [ ] เลือกโฮสต์และตัวตนเว็บไซต์ PO แยกจาก Grandhouse
 - [ ] Upload เนื้อหาภายใน `dist/` รวม `vendor/` และ favicon
 - [ ] ตรวจ MIME type, asset 404, console error และวิธีย้อน release
+- [ ] ตรวจเว็บ production หลัง Deploy ว่าไม่ fallback ไปข้อมูล demo เมื่อ Supabase ใช้งานไม่ได้
 
 ### Task 4 — HTTPS และโดเมน
 
@@ -577,16 +577,16 @@ export const config = {
    - [x] ใช้ session office ที่ยังเปิดอยู่หลัง owner ปิดบัญชี: โหลดแผนก/สาขาและเปิด PO เดิมไม่สำเร็จ; owner ยังอ่าน PO และรายละเอียดได้
    - **ปิดงานเมื่อ:** บทบาทเข้าใช้ได้ตามสิทธิ์; session เดิมของบัญชีที่ปิดอ่าน PO/แผนกไม่ได้ และ owner ยังเข้าถึงประวัติได้
 
-2. **ใส่ Project URL และ Publishable key — ตั้งค่าและตรวจ endpoint แล้ว; เหลือทดสอบ session lifecycle**
+2. **ใส่ Project URL และ Publishable key — ตั้งค่าและตรวจ session/local recovery ผ่านแล้ว; production verification ทำต่อใน Task 3**
 
    - [x] นำ Project URL และ Publishable key ของ project PO ใส่ใน `dist/config.js`; ห้ามใส่ Secret/Service Role key
    - [x] ตรวจว่า URL/key ชี้ project PO เท่านั้น (หน้าเว็บ, config และ Auth health ตอบ `200`)
    - [x] เพิ่ม persist/restore session, refresh token ที่ใกล้หมดอายุ และตรวจ profile ที่ยัง active ตอนเริ่มเว็บ; mock tests ยืนยัน network error ไม่ fallback เป็นข้อมูล demo
    - [x] ยืนยัน owner login/reload จริงแล้ว session อยู่และโหลดรายการจาก Supabase ได้
    - [x] ทดสอบ network error จริงด้วย DevTools Offline: แสดงข้อผิดพลาด ไม่มีข้อมูล demo; กลับ No throttling และกดลองใหม่แล้วข้อมูลกลับมา
-   - [ ] ทดสอบ refresh เมื่อ session ใกล้หมดอายุด้วย Supabase จริงบน browser
+   - [x] จำลอง `expires_at` ให้ผ่านเวลาใน browser; reload แล้ว refresh token กับ Supabase สำเร็จและกลับรายการ PO โดยไม่ต้อง login ใหม่ (ผู้ใช้ยืนยัน)
    - [x] ยืนยันว่าโหมด Supabase ไม่ fallback ไป demo เมื่อ API ล้มเหลว ด้วย mock REST และ browser Offline จริง
-   - [ ] ยืนยันซ้ำบนเว็บ production หลัง Deploy (Task 3)
+   - [ ] ตรวจเว็บ production หลัง Deploy ว่าไม่ fallback ไป demo (Task 3)
    - **ปิดงานเมื่อ:** เว็บอ่านและเขียนข้อมูลใน project PO ตามสิทธิ์จริง และไม่แสดงเลข `DEMO-` สำหรับข้อมูลใหม่
 
 3. **เผยแพร่ไฟล์เว็บจาก `dist/` — ยังไม่ดำเนินการ**
