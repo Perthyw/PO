@@ -2,11 +2,12 @@
 
 ## อัตโนมัติ
 
-- `npm test`: 20/20 ผ่านใน PGlite และ mock REST
+- `npm test`: 21/21 ผ่านใน PGlite และ mock REST
 - สูตร VAT ราคารวม 3,000 บาท: ฐาน 2,803.74 บาท, VAT 196.26 บาท, รวม 3,000.00 บาท
 - ครอบคลุม NON VAT, rounding, validation, วันที่ผิด, lifecycle, เหตุผลปฏิเสธ, invoice gate, monthly report permission, idempotency, RLS, anonymous/outsider, direct write denial และ atomic rollback
 - PostgreSQL ทดสอบด้วย PGlite ฐานใหม่แยกทุกครั้ง โดยจำลอง `auth.uid()` ไม่แตะฐานจริง
 - REST adapter ทดสอบด้วย mock fetch สำหรับ login, paging, create date/request UUID, monthly report, network failure และ session expiry
+- เพิ่ม test สำหรับ persist/restore session หลัง reload, refresh token ที่ใกล้หมดอายุ และล้าง session เมื่อ profile ถูกปิด
 - `npm run check` ผ่านสำหรับ `app.js`, `api.js`, `domain.js`, `export.js`
 - Strict UI audit รอบแก้ครั้งนี้: 0 findings
 - `npm audit --omit=dev` รายงาน 0 vulnerabilities ตอน vendoring ExcelJS
@@ -32,7 +33,7 @@
 - Owner Auth user/profile ถูกสร้างโดยใช้ UUID เดียวกัน (ไม่บันทึกข้อมูลรับรองลง Git)
 - `manage-user` deploy แล้ว; preflight จาก `http://localhost:4180` ได้ 204, origin อื่นได้ 403, ไม่มี session ได้ 401
 - `dist/config.js` ชี้ Project URL และ Publishable key ไปยัง project PO; local config และหน้าเว็บตอบ 200 และ Auth health endpoint ตอบ 200
-- ทดสอบ sign-in, role owner/office, disabled-account login lockout และ RLS read ด้วย office session เดิมหลังปิดบัญชีผ่านหน้าเว็บจริงแล้ว; ยังไม่ทดสอบ refresh/expiry, production write RPC ในทุกบทบาท, multi-device หรือ production export
+- ทดสอบ sign-in, role owner/office, disabled-account login lockout และ RLS read ด้วย office session เดิมหลังปิดบัญชีผ่านหน้าเว็บจริงแล้ว; เพิ่ม persist/restore ในโค้ดและ mock tests แล้ว แต่ยังรอยืนยัน reload/refresh/expiry ใน browser จริง รวมถึง production write RPC ทุกบทบาท, multi-device และ production export
 - ยังต้องยืนยันการปิด public signup ก่อนใช้งานจริง
 
 การแก้ครั้งก่อนทดสอบการบันทึกแผนกแยกตามรายการสินค้า, สิทธิ์อ่าน `po_items`, การเพิ่มและเก็บแผนก, การห้ามออฟฟิศทั่วไปยืนยันรับสินค้าของคนอื่น และการปฏิเสธ RPC สำหรับบัญชีที่ปิดใช้งานใน PGlite แล้ว
