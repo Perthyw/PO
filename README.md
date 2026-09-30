@@ -62,7 +62,8 @@
 - [x] ทดสอบ owner login แล้ว reload หน้าเว็บจริง: session ยังอยู่และรายการ PO โหลดได้
 - [x] ทดสอบ network error บน browser จริงด้วย DevTools Offline: หน้า PO แจ้งว่าเชื่อมต่อไม่ได้ ไม่แสดงข้อมูล demo; เปลี่ยนกลับ No throttling แล้วกด “ลองโหลดใหม่” ข้อมูลกลับมา
 - [ ] ตรวจ session หมดอายุบน browser จริง
-- [ ] ยืนยันว่าเว็บ production ไม่ fallback ไปข้อมูล demo
+- [x] ยืนยันว่าเว็บที่ตั้งค่า Supabase แล้วไม่ fallback ไปข้อมูล demo เมื่อ API ล้มเหลว (ทดสอบ Offline จริงและ mock REST)
+- [ ] ทดสอบว่าเว็บ production ไม่ fallback ไปข้อมูล demo หลัง Deploy (ทำต่อใน Task 3)
 
 ### Task 3 — Deploy เว็บ
 
@@ -583,7 +584,9 @@ export const config = {
    - [x] เพิ่ม persist/restore session, refresh token ที่ใกล้หมดอายุ และตรวจ profile ที่ยัง active ตอนเริ่มเว็บ; mock tests ยืนยัน network error ไม่ fallback เป็นข้อมูล demo
    - [x] ยืนยัน owner login/reload จริงแล้ว session อยู่และโหลดรายการจาก Supabase ได้
    - [x] ทดสอบ network error จริงด้วย DevTools Offline: แสดงข้อผิดพลาด ไม่มีข้อมูล demo; กลับ No throttling และกดลองใหม่แล้วข้อมูลกลับมา
-   - [ ] ทดสอบ expiry จริง และยืนยันไม่มี fallback ไป demo บน browser ที่เชื่อม project PO
+   - [ ] ทดสอบ refresh เมื่อ session ใกล้หมดอายุด้วย Supabase จริงบน browser
+   - [x] ยืนยันว่าโหมด Supabase ไม่ fallback ไป demo เมื่อ API ล้มเหลว ด้วย mock REST และ browser Offline จริง
+   - [ ] ยืนยันซ้ำบนเว็บ production หลัง Deploy (Task 3)
    - **ปิดงานเมื่อ:** เว็บอ่านและเขียนข้อมูลใน project PO ตามสิทธิ์จริง และไม่แสดงเลข `DEMO-` สำหรับข้อมูลใหม่
 
 3. **เผยแพร่ไฟล์เว็บจาก `dist/` — ยังไม่ดำเนินการ**
