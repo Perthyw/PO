@@ -32,13 +32,14 @@
 
 - Project `rhkilsnuqdkzwlncjvkj`: `db push --dry-run` ผ่าน; migration `20260929000000` อยู่ทั้ง local และ remote
 - Owner Auth user/profile ถูกสร้างโดยใช้ UUID เดียวกัน (ไม่บันทึกข้อมูลรับรองลง Git)
-- `manage-user` deploy แล้ว; preflight จาก `http://localhost:4180` และ `https://po-six-lemon.vercel.app` ได้ 204, origin อื่นได้ 403, ไม่มี session จาก Vercel ได้ 401; owner session บน Vercel ยังรอผู้ใช้ทดสอบเอง
+- `manage-user` deploy แล้ว; preflight จาก `http://localhost:4180` และ `https://po-thegrands.vercel.app` ได้ 204, origin อื่นได้ 403, ไม่มี session จาก Vercel ได้ 401; owner session บน Vercel ยังรอผู้ใช้ทดสอบเอง
 - `dist/config.js` ชี้ Project URL และ Publishable key ไปยัง project PO; local config และหน้าเว็บตอบ 200 และ Auth health endpoint ตอบ 200
 - ทดสอบ sign-in, role owner/office, disabled-account login lockout, RLS read ด้วย office session เดิมหลังปิดบัญชี และ owner session persistence หลัง reload ผ่านหน้าเว็บจริงแล้ว; จำลองเวลาหมดอายุใน local session แล้ว reload พบว่า refresh token กับ Supabase สำเร็จและกลับรายการโดยไม่ถาม login ใหม่; ยังไม่ได้รอ JWT หมดอายุจริงตามเวลา รวมถึง production write RPC ทุกบทบาท, multi-device และ production export
 - Browser จริง (2026-09-30): ทดสอบ DevTools Network > Offline ขณะหน้า PO เปิดอยู่ หน้าแสดงข้อความเชื่อมต่อไม่ได้และปุ่ม “ลองโหลดใหม่” โดยไม่แสดงข้อมูล demo; คืนเป็น No throttling และกดลองใหม่แล้วกลับมาใช้งานได้
 - ตรวจ flow ใน source: เมื่อมี Supabase URL และ Publishable key จะใช้ Supabase API; API/network error ถูกส่งเป็นข้อผิดพลาดและไม่มีการสลับไป demo adapter. ยืนยันด้วย mock REST และ browser Offline จริง; production fallback test ยังต้องรันหลังเปิด production URL
-- Vercel production (2026-09-30): ผู้ใช้ระบุ URL หลัก `https://po-six-lemon.vercel.app/`; หน้าเว็บและ assets ที่ตรวจ (JS/CSS/config/favicon/vendor) ตอบ HTTP 200 และไฟล์ JS/CSS/config หลักตรงกับ `dist/` ใน repo; config ชี้ Supabase project PO และมี publishable key โดยไม่มี service role key. ยังไม่ได้ทดสอบ login/owner flow, browser console, fallback ขณะ API ล้มเหลว หรือขั้นตอน rollback ใน Vercel ด้วย browser จริง
-- Supabase CORS (2026-09-30): เพิ่ม Vercel origin ใน `ALLOWED_ORIGINS` โดยเก็บ localhost เดิมไว้; Vercel preflight ได้ 204, origin ที่ไม่ได้อนุญาตได้ 403 และ POST ที่ไม่มี session ได้ 401
+- Vercel production (2026-09-30): ผู้ใช้ระบุ URL หลัก `https://po-thegrands.vercel.app/`; หน้าเว็บและ assets ที่ตรวจ (JS/CSS/config/favicon/vendor) ตอบ HTTP 200 และไฟล์ JS/CSS/config หลักตรงกับ `dist/` ใน repo; config ชี้ Supabase project PO และมี publishable key โดยไม่มี service role key. ยังไม่ได้ทดสอบ login/owner flow, browser console, fallback ขณะ API ล้มเหลว หรือขั้นตอน rollback ใน Vercel ด้วย browser จริง
+- Supabase CORS (2026-09-30): `ALLOWED_ORIGINS` อนุญาต `http://localhost:4180` และ `https://po-thegrands.vercel.app`; preflight ของโดเมนใหม่ได้ 204, origin ที่ไม่ได้อนุญาตได้ 403 และ POST ที่ไม่มี session ได้ 401
+- Vercel alias (2026-09-30): ตรวจหลังผู้ใช้เปลี่ยนชื่อแล้ว `https://po-six-lemon.vercel.app/` ตอบ 404 ส่วน URL ใหม่ `https://po-thegrands.vercel.app/` ตอบ 200
 - Sites รุ่นก่อนหน้า (2026-09-30): URL `https://po-desk-office.grandsfoods.chatgpt.site` ยังคงเป็น release แยกแบบ owner-only; ไม่ใช่ production URL หลักที่ผู้ใช้ระบุ
 - ยังต้องยืนยันการปิด public signup ก่อนใช้งานจริง
 

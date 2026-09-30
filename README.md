@@ -2,7 +2,7 @@
 
 ระบบเปิด อนุมัติ และติดตามใบขอซื้อ (PO) สำหรับทีมจัดซื้อของ The Grands ทำงานแยกจากระบบ Grandhouse ทั้งซอร์สโค้ด บัญชีผู้ใช้ ฐานข้อมูล และการเผยแพร่ เว็บสำหรับพัฒนาในเครื่องทำงานที่ [http://localhost:4180](http://localhost:4180)
 
-> สถานะปัจจุบัน: deploy schema และ `manage-user` ไป Supabase project PO แล้ว; ทดสอบ owner/office, disabled login, session reload, Supabase refresh และ offline recovery แล้ว; เว็บหลักที่ผู้ใช้ deploy คือ [PO The Grands บน Vercel](https://po-six-lemon.vercel.app/) ตรวจไฟล์และ assets แล้วตรงกับ `dist/` ใน repo; เว็บ Sites เดิมยังคงเป็นรุ่นก่อนหน้าแบบ owner-only
+> สถานะปัจจุบัน: deploy schema และ `manage-user` ไป Supabase project PO แล้ว; ทดสอบ owner/office, disabled login, session reload, Supabase refresh และ offline recovery แล้ว; เว็บหลักที่ผู้ใช้ deploy คือ [PO The Grands บน Vercel](https://po-thegrands.vercel.app/) ตรวจไฟล์และ assets แล้วตรงกับ `dist/` ใน repo; เว็บ Sites เดิมยังคงเป็นรุ่นก่อนหน้าแบบ owner-only
 
 ## สารบัญ
 
@@ -66,7 +66,7 @@
 
 ### Task 3 — Deploy เว็บ
 
-- [x] ใช้เว็บ Vercel ที่ผู้ใช้ deploy เป็นเว็บหลัก: [po-six-lemon.vercel.app](https://po-six-lemon.vercel.app/)
+- [x] ใช้เว็บ Vercel ที่ผู้ใช้ deploy เป็นเว็บหลัก: [po-thegrands.vercel.app](https://po-thegrands.vercel.app/)
 - [x] ตรวจหน้าเว็บและ assets หลักบน Vercel ตอบ 200 และเนื้อหา JS/CSS/config ตรงกับไฟล์ใน `dist/` ของ repo
 - [x] ตรวจ config บนเว็บชี้ Supabase project PO และใช้ publishable key โดยไม่มี service role key
 - [ ] ตรวจ browser console และ flow login/PO บนเว็บ Vercel ด้วยบัญชีผู้ใช้
@@ -575,7 +575,7 @@ export const config = {
    - [x] ตรวจสภาพ project `rhkilsnuqdkzwlncjvkj` และยืนยันว่า migration ที่จะ deploy มีเพียง `20260929000000_initial_po_schema.sql`
    - [x] Link project, ตรวจ `db push --dry-run`, deploy migration และตรวจ `supabase migration list` ให้ local/remote ตรงกัน
    - [x] ยืนยัน owner Auth user และเพิ่ม `profiles` ด้วย UUID เดียวกัน โดยไม่ใส่รหัสผ่านใน Git
-   - [x] Deploy `manage-user` Edge Function, ตั้ง `ALLOWED_ORIGINS` ให้รวม `http://localhost:4180` และ `https://po-six-lemon.vercel.app`; preflight ของ origin ที่อนุญาตได้ `204`, origin อื่นได้ `403`, คำขอไม่มี session ได้ `401`
+   - [x] Deploy `manage-user` Edge Function, ตั้ง `ALLOWED_ORIGINS` ให้รวม `http://localhost:4180` และ `https://po-thegrands.vercel.app`; preflight ของ origin ที่อนุญาตได้ `204`, origin อื่นได้ `403`, คำขอไม่มี session ได้ `401`
    - [x] ทดสอบ owner login/หน้าจัดการผู้ใช้ และ office login/รายการ PO/ฟอร์มสร้าง PO ผ่าน session จริง; office ไม่เห็นเมนูผู้ใช้งาน
    - [x] ปิด `qa.office01` และยืนยัน login ถูกปฏิเสธด้วย `User is banned`
    - [x] ใช้ session office ที่ยังเปิดอยู่หลัง owner ปิดบัญชี: โหลดแผนก/สาขาและเปิด PO เดิมไม่สำเร็จ; owner ยังอ่าน PO และรายละเอียดได้
@@ -595,7 +595,7 @@ export const config = {
 
 3. **เผยแพร่เว็บบน Vercel — URL ใช้งานได้และตรวจ assets ตรงกับ repo แล้ว; browser flow และ rollback ยังรอทดสอบ**
 
-   - [x] ใช้ URL ที่ผู้ใช้ deploy เป็น production หลัก: [https://po-six-lemon.vercel.app/](https://po-six-lemon.vercel.app/)
+   - [x] ใช้ URL ที่ผู้ใช้ deploy เป็น production หลัก: [https://po-thegrands.vercel.app/](https://po-thegrands.vercel.app/)
    - [x] ตรวจหน้าเว็บ, JS, CSS, config, favicon และ vendor assets ตอบ HTTP 200; เนื้อหาไฟล์หลักตรงกับ `dist/` ใน repo
    - [x] ตรวจ config ที่เผยแพร่ชี้ Supabase project PO และไม่มี service role key
    - [ ] ให้เจ้าของทดสอบ login, รายการ PO และเมนูจัดการบัญชีบน Vercel ด้วยตนเอง; ไม่ส่งรหัสผ่านให้ผู้ช่วย
@@ -613,7 +613,7 @@ export const config = {
 
 5. **กำหนด `ALLOWED_ORIGINS` ให้ Edge Function — CORS ของ Vercel ผ่าน; ยังรอทดสอบ owner flow จากเว็บจริง**
 
-   - [x] ตั้ง allowlist ให้รวม `http://localhost:4180` และ `https://po-six-lemon.vercel.app` โดยไม่ใส่ path
+   - [x] ตั้ง allowlist ให้รวม `http://localhost:4180` และ `https://po-thegrands.vercel.app` โดยไม่ใส่ path
    - [x] ตรวจ preflight จาก Vercel ได้ `204`; origin ที่ไม่อนุญาตได้ `403`
    - [x] ตรวจ POST ที่ไม่มี session จาก Vercel ได้ `401` (ยังปฏิเสธเมื่อไม่มี authentication)
    - [ ] ให้เจ้าของทดสอบเมนู “ผู้ใช้งาน” บนเว็บ Vercel ด้วย session ของตน
