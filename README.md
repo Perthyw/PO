@@ -50,7 +50,7 @@
 - [x] ปิดบัญชีทดสอบ แล้วตรวจว่า disabled account เข้าระบบไม่ได้ผ่าน session จริง (`User is banned`)
 - [x] ทดสอบ session office ที่ login ค้างอยู่หลัง owner ปิดบัญชี: เปิด PO ใหม่ไม่ได้, เปิด PO เดิมไม่พบ; owner ยังเห็นและเปิดรายละเอียด PO ได้
 
-สถานะการตรวจล่าสุด (2026-09-30): migration และกฎสิทธิ์ผ่าน `npm test` ครบ 21/21 และ `npm run check` ผ่านแล้ว ตรวจ `db push --dry-run` และ deploy migration จริงสำเร็จ โดย `supabase migration list` ตรงกันที่ `20260929000000`; `manage-user` deploy แล้ว, CORS ที่อนุญาตได้ 204, origin อื่นได้ 403 และคำขอที่ไม่มี session ได้ 401; owner เปิดหน้าจัดการผู้ใช้ได้; office อ่านรายการ PO และเปิดฟอร์มได้; หลัง owner ปิดบัญชีทดสอบ session office ที่ค้างอยู่เปิดฟอร์มใหม่ไม่ได้เพราะไม่เห็นแผนก/สาขา และเปิด PO เดิมไม่พบ ขณะที่ owner ยังเห็นและเปิดรายละเอียด PO ได้ เป็นผลตามสิทธิ์ RLS ที่ตั้งใจไว้; เพิ่มการ persist/restore session แล้วและ mock test ผ่าน; ยืนยัน owner login/reload ใน browser จริงแล้ว เหลือทดสอบ expiry และ network error จริง
+สถานะการตรวจล่าสุด (2026-09-30): migration และกฎสิทธิ์ผ่าน `npm test` ครบ 21/21 และ `npm run check` ผ่านแล้ว ตรวจ `db push --dry-run` และ deploy migration จริงสำเร็จ โดย `supabase migration list` ตรงกันที่ `20260929000000`; `manage-user` deploy แล้ว, CORS ที่อนุญาตได้ 204, origin อื่นได้ 403 และคำขอที่ไม่มี session ได้ 401; owner เปิดหน้าจัดการผู้ใช้ได้; office อ่านรายการ PO และเปิดฟอร์มได้; หลัง owner ปิดบัญชีทดสอบ session office ที่ค้างอยู่เปิดฟอร์มใหม่ไม่ได้เพราะไม่เห็นแผนก/สาขา และเปิด PO เดิมไม่พบ ขณะที่ owner ยังเห็นและเปิดรายละเอียด PO ได้ เป็นผลตามสิทธิ์ RLS ที่ตั้งใจไว้; เพิ่มการ persist/restore session แล้วและ mock test ผ่าน; ยืนยัน owner login/reload ใน browser จริงแล้ว และทดสอบ Offline → No throttling → “ลองโหลดใหม่” ใน browser จริงผ่านแล้ว เหลือทดสอบ expiry จริง
 
 ### Task 2 — ตั้งค่าเว็บกับ Supabase
 
@@ -60,7 +60,8 @@
 - [x] เพิ่มการบันทึก/กู้คืน Supabase session และตรวจ profile/RLS ตอนเปิดหน้า; ล้าง session เมื่อ profile ถูกปิด
 - [x] ทดสอบจำลอง reload, refresh token ใกล้หมดอายุ, disabled profile และ network failure โดยคง session ไว้และไม่คืนข้อมูล demo ด้วย mock REST
 - [x] ทดสอบ owner login แล้ว reload หน้าเว็บจริง: session ยังอยู่และรายการ PO โหลดได้
-- [ ] ตรวจ session หมดอายุและ network error บน browser จริง
+- [x] ทดสอบ network error บน browser จริงด้วย DevTools Offline: หน้า PO แจ้งว่าเชื่อมต่อไม่ได้ ไม่แสดงข้อมูล demo; เปลี่ยนกลับ No throttling แล้วกด “ลองโหลดใหม่” ข้อมูลกลับมา
+- [ ] ตรวจ session หมดอายุบน browser จริง
 - [ ] ยืนยันว่าเว็บ production ไม่ fallback ไปข้อมูล demo
 
 ### Task 3 — Deploy เว็บ
@@ -581,7 +582,8 @@ export const config = {
    - [x] ตรวจว่า URL/key ชี้ project PO เท่านั้น (หน้าเว็บ, config และ Auth health ตอบ `200`)
    - [x] เพิ่ม persist/restore session, refresh token ที่ใกล้หมดอายุ และตรวจ profile ที่ยัง active ตอนเริ่มเว็บ; mock tests ยืนยัน network error ไม่ fallback เป็นข้อมูล demo
    - [x] ยืนยัน owner login/reload จริงแล้ว session อยู่และโหลดรายการจาก Supabase ได้
-   - [ ] ทดสอบ expiry/network error จริง และยืนยันไม่มี fallback ไป demo บน browser ที่เชื่อม project PO
+   - [x] ทดสอบ network error จริงด้วย DevTools Offline: แสดงข้อผิดพลาด ไม่มีข้อมูล demo; กลับ No throttling และกดลองใหม่แล้วข้อมูลกลับมา
+   - [ ] ทดสอบ expiry จริง และยืนยันไม่มี fallback ไป demo บน browser ที่เชื่อม project PO
    - **ปิดงานเมื่อ:** เว็บอ่านและเขียนข้อมูลใน project PO ตามสิทธิ์จริง และไม่แสดงเลข `DEMO-` สำหรับข้อมูลใหม่
 
 3. **เผยแพร่ไฟล์เว็บจาก `dist/` — ยังไม่ดำเนินการ**

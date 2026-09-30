@@ -34,7 +34,8 @@
 - Owner Auth user/profile ถูกสร้างโดยใช้ UUID เดียวกัน (ไม่บันทึกข้อมูลรับรองลง Git)
 - `manage-user` deploy แล้ว; preflight จาก `http://localhost:4180` ได้ 204, origin อื่นได้ 403, ไม่มี session ได้ 401
 - `dist/config.js` ชี้ Project URL และ Publishable key ไปยัง project PO; local config และหน้าเว็บตอบ 200 และ Auth health endpoint ตอบ 200
-- ทดสอบ sign-in, role owner/office, disabled-account login lockout, RLS read ด้วย office session เดิมหลังปิดบัญชี และ owner session persistence หลัง reload ผ่านหน้าเว็บจริงแล้ว; expiry/network failure จริงยังไม่ทดสอบ รวมถึง production write RPC ทุกบทบาท, multi-device และ production export
+- ทดสอบ sign-in, role owner/office, disabled-account login lockout, RLS read ด้วย office session เดิมหลังปิดบัญชี และ owner session persistence หลัง reload ผ่านหน้าเว็บจริงแล้ว; session expiry จริงยังไม่ทดสอบ รวมถึง production write RPC ทุกบทบาท, multi-device และ production export
+- Browser จริง (2026-09-30): ทดสอบ DevTools Network > Offline ขณะหน้า PO เปิดอยู่ หน้าแสดงข้อความเชื่อมต่อไม่ได้และปุ่ม “ลองโหลดใหม่” โดยไม่แสดงข้อมูล demo; คืนเป็น No throttling และกดลองใหม่แล้วกลับมาใช้งานได้
 - ยังต้องยืนยันการปิด public signup ก่อนใช้งานจริง
 
 การแก้ครั้งก่อนทดสอบการบันทึกแผนกแยกตามรายการสินค้า, สิทธิ์อ่าน `po_items`, การเพิ่มและเก็บแผนก, การห้ามออฟฟิศทั่วไปยืนยันรับสินค้าของคนอื่น และการปฏิเสธ RPC สำหรับบัญชีที่ปิดใช้งานใน PGlite แล้ว
