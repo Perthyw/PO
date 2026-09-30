@@ -2,7 +2,7 @@
 
 ระบบเปิด อนุมัติ และติดตามใบขอซื้อ (PO) สำหรับทีมจัดซื้อของ The Grands ทำงานแยกจากระบบ Grandhouse ทั้งซอร์สโค้ด บัญชีผู้ใช้ ฐานข้อมูล และการเผยแพร่ เว็บสำหรับพัฒนาในเครื่องทำงานที่ [http://localhost:4180](http://localhost:4180)
 
-> สถานะปัจจุบัน: deploy schema และ `manage-user` ไป Supabase project PO แล้ว พร้อมตั้งค่าเว็บด้วย Publishable key; ทดสอบ owner, office และการปฏิเสธ login ของบัญชี disabled ผ่านหน้าเว็บจริงแล้ว ยังเหลือ session ด้านอื่นก่อนเปิด production ข้อมูล production จะใช้ project นี้เท่านั้น
+> สถานะปัจจุบัน: deploy schema และ `manage-user` ไป Supabase project PO แล้ว พร้อมตั้งค่าเว็บด้วย Publishable key; ทดสอบ owner, office และการปฏิเสธ login ของบัญชี disabled ผ่านหน้าเว็บจริงแล้ว; ก่อนปิด Task 1 ยังต้องทดสอบ session office ที่ค้างอยู่หลังถูกปิดบัญชี ข้อมูล production จะใช้ project นี้เท่านั้น
 
 ## สารบัญ
 
@@ -48,8 +48,9 @@
 - [x] ทดสอบ office login, อ่านรายการ PO และเปิดฟอร์มสร้าง PO ผ่าน session จริง โดยไม่บันทึกข้อมูล
 - [x] ตรวจเมนูของ office: ไม่เห็นหน้าจัดการบัญชีผู้ใช้งาน
 - [x] ปิดบัญชีทดสอบ แล้วตรวจว่า disabled account เข้าระบบไม่ได้ผ่าน session จริง (`User is banned`)
+- [ ] ทดสอบ session office ที่ login ค้างอยู่ก่อนปิดบัญชี ว่าหลัง owner ปิดบัญชีแล้วอ่าน PO/เรียก API หรือ RPC ไม่ได้จาก RLS
 
-สถานะการตรวจล่าสุด (2026-09-30): migration และกฎสิทธิ์ผ่าน `npm test` ครบ 20/20 และ `npm run check` ผ่านแล้ว ตรวจ `db push --dry-run` และ deploy migration จริงสำเร็จ โดย `supabase migration list` ตรงกันที่ `20260929000000`; `manage-user` deploy แล้ว, CORS ที่อนุญาตได้ 204, origin อื่นได้ 403 และคำขอที่ไม่มี session ได้ 401; owner เปิดหน้าจัดการผู้ใช้ได้ และ office `qa.office01` login, อ่านรายการ PO และเปิดฟอร์มได้โดยไม่บันทึกรายการ; หลังปิดบัญชี หน้า login ปฏิเสธด้วย `User is banned` ยืนยันการห้าม login แล้ว แต่ไม่ได้ทดสอบอ่านข้อมูลด้วย session ที่ปิดใช้งาน
+สถานะการตรวจล่าสุด (2026-09-30): migration และกฎสิทธิ์ผ่าน `npm test` ครบ 20/20 และ `npm run check` ผ่านแล้ว ตรวจ `db push --dry-run` และ deploy migration จริงสำเร็จ โดย `supabase migration list` ตรงกันที่ `20260929000000`; `manage-user` deploy แล้ว, CORS ที่อนุญาตได้ 204, origin อื่นได้ 403 และคำขอที่ไม่มี session ได้ 401; owner เปิดหน้าจัดการผู้ใช้ได้ และ office `qa.office01` login, อ่านรายการ PO และเปิดฟอร์มได้โดยไม่บันทึกรายการ; หลังปิดบัญชี หน้า login ปฏิเสธด้วย `User is banned` แล้ว แต่ยังไม่ได้ทดสอบ session ที่ออก token ก่อนปิดบัญชีว่าถูก RLS ปฏิเสธการอ่าน/API/RPC หรือไม่
 
 ### Task 2 — ตั้งค่าเว็บกับ Supabase
 
@@ -558,7 +559,7 @@ export const config = {
 
 โฟลเดอร์ `dist/` เป็น static website ที่ไม่ต้อง build แผนต่อไปนี้มี **7 งานหลัก** สถานะ `[x]` หมายถึงตรวจหรือเตรียมในซอร์สชุดนี้แล้ว ส่วน `[ ]` หมายถึงยังต้องทำหรือพิสูจน์บนบริการจริง การผ่าน PGlite และโหมดสาธิตไม่ใช่การผ่าน Supabase production
 
-1. **เชื่อม Supabase และตรวจสิทธิ์จริง — schema, owner และ function deploy แล้ว, เหลือทดสอบบทบาทผ่าน session จริง**
+1. **เชื่อม Supabase และตรวจสิทธิ์จริง — schema/function deploy แล้ว; owner/office login และ disabled-login ผ่าน, เหลือตรวจ session เดิมหลังปิดบัญชี**
 
    - [x] จัด schema เป็น migration ที่มี `profiles`, `departments`, `purchase_orders`, `po_items`, `po_events`, `notifications` และ `po_commands` พร้อม RLS/RPC
    - [x] ทดสอบกฎธุรกิจ สิทธิ์ การรับสินค้าเฉพาะใบ และ transaction ด้วย PGlite แยกจากข้อมูลจริง
@@ -566,13 +567,15 @@ export const config = {
    - [x] Link project, ตรวจ `db push --dry-run`, deploy migration และตรวจ `supabase migration list` ให้ local/remote ตรงกัน
    - [x] ยืนยัน owner Auth user และเพิ่ม `profiles` ด้วย UUID เดียวกัน โดยไม่ใส่รหัสผ่านใน Git
    - [x] Deploy `manage-user` Edge Function, ตั้ง `ALLOWED_ORIGINS=http://localhost:4180` และทดสอบ endpoint: origin ที่อนุญาตได้ `204`, origin อื่นได้ `403`, คำขอไม่มี session ได้ `401`
-   - [ ] ทดสอบ owner/office/disabled account ผ่าน session จริง
-   - **ปิดงานเมื่อ:** บัญชีทุกบทบาทเข้าใช้ได้ตามสิทธิ์ และการเรียก API/RPC ตรง ๆ ไม่ข้าม RLS หรือกฎสถานะ
+   - [x] ทดสอบ owner login/หน้าจัดการผู้ใช้ และ office login/รายการ PO/ฟอร์มสร้าง PO ผ่าน session จริง; office ไม่เห็นเมนูผู้ใช้งาน
+   - [x] ปิด `qa.office01` และยืนยัน login ถูกปฏิเสธด้วย `User is banned`
+   - [ ] ใช้บัญชี QA ใหม่เพื่อคง office session ไว้ใน browser หนึ่ง แล้วให้ owner อีก browser ปิดบัญชี; กลับไปตรวจ list/API/RPC ด้วย session เดิมว่าถูกปฏิเสธโดย RLS
+   - **ปิดงานเมื่อ:** บทบาทเข้าใช้ได้ตามสิทธิ์ และ session เดิมของบัญชีที่ปิดไม่สามารถอ่านหรือแก้ข้อมูลผ่าน API/RPC ได้
 
-2. **ใส่ Project URL และ Publishable key — ตั้งค่าแล้ว, รอทดสอบ session จริง**
+2. **ใส่ Project URL และ Publishable key — ตั้งค่าและตรวจ endpoint แล้ว; เหลือทดสอบ session lifecycle**
 
    - [x] นำ Project URL และ Publishable key ของ project PO ใส่ใน `dist/config.js`; ห้ามใส่ Secret/Service Role key
-   - [ ] ตรวจว่า URL/key ชี้ project PO เท่านั้น และเว็บเปลี่ยนจากโหมดสาธิตเป็นโหมด Supabase อย่างชัดเจน
+   - [x] ตรวจว่า URL/key ชี้ project PO เท่านั้น (หน้าเว็บ, config และ Auth health ตอบ `200`)
    - [ ] ทดสอบ login, refresh token, session หมดอายุ และกรณี network/Supabase ล้มเหลวว่าแสดงข้อผิดพลาดโดยไม่กลับไปใช้ข้อมูล demo
    - **ปิดงานเมื่อ:** เว็บอ่านและเขียนข้อมูลใน project PO ตามสิทธิ์จริง และไม่แสดงเลข `DEMO-` สำหรับข้อมูลใหม่
 
