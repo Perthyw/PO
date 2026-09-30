@@ -2,7 +2,7 @@
 
 ระบบเปิด อนุมัติ และติดตามใบขอซื้อ (PO) สำหรับทีมจัดซื้อของ The Grands ทำงานแยกจากระบบ Grandhouse ทั้งซอร์สโค้ด บัญชีผู้ใช้ ฐานข้อมูล และการเผยแพร่ เว็บสำหรับพัฒนาในเครื่องทำงานที่ [http://localhost:4180](http://localhost:4180)
 
-> สถานะปัจจุบัน: deploy schema และ `manage-user` ไป Supabase project PO แล้ว; ทดสอบ owner/office, disabled login, session reload, Supabase refresh และ offline recovery แล้ว; เผยแพร่เว็บ production release แรกแล้วที่ [PO The Grands](https://po-desk-office.grandsfoods.chatgpt.site) โดยคงสิทธิ์ owner-only เดิมไว้
+> สถานะปัจจุบัน: deploy schema และ `manage-user` ไป Supabase project PO แล้ว; ทดสอบ owner/office, disabled login, session reload, Supabase refresh และ offline recovery แล้ว; เว็บหลักที่ผู้ใช้ deploy คือ [PO The Grands บน Vercel](https://po-six-lemon.vercel.app/) ตรวจไฟล์และ assets แล้วตรงกับ `dist/` ใน repo; เว็บ Sites เดิมยังคงเป็นรุ่นก่อนหน้าแบบ owner-only
 
 ## สารบัญ
 
@@ -66,11 +66,13 @@
 
 ### Task 3 — Deploy เว็บ
 
-- [x] ใช้ Sites project PO เดิมและ URL [po-desk-office.grandsfoods.chatgpt.site](https://po-desk-office.grandsfoods.chatgpt.site) แยกจาก Grandhouse
-- [x] Upload เนื้อหาภายใน `dist/` รวม `vendor/` และ favicon; release สำเร็จเมื่อ 2026-09-30, version `appgprj_6ab60a43e9d08191bb7b1b864ba539ed~appgver_78d2560221d08191ac2baf562e95880d`
-- [ ] ตรวจ MIME type, asset 404, console error และวิธีย้อน release
+- [x] ใช้เว็บ Vercel ที่ผู้ใช้ deploy เป็นเว็บหลัก: [po-six-lemon.vercel.app](https://po-six-lemon.vercel.app/)
+- [x] ตรวจหน้าเว็บและ assets หลักบน Vercel ตอบ 200 และเนื้อหา JS/CSS/config ตรงกับไฟล์ใน `dist/` ของ repo
+- [x] ตรวจ config บนเว็บชี้ Supabase project PO และใช้ publishable key โดยไม่มี service role key
+- [ ] ตรวจ browser console และ flow login/PO บนเว็บ Vercel ด้วยบัญชีผู้ใช้
 - [ ] ทดสอบเว็บ production ว่าไม่ fallback ไปข้อมูล demo เมื่อ Supabase ใช้งานไม่ได้
-- [ ] ยืนยันสิทธิ์ให้พนักงานเข้าเว็บไซต์; ตอนนี้คงค่า owner-only ตาม Site เดิม
+- [ ] ตรวจขั้นตอนย้อน release ใน Vercel
+- หมายเหตุ: เว็บ Sites เดิม [po-desk-office.grandsfoods.chatgpt.site](https://po-desk-office.grandsfoods.chatgpt.site) เป็นรุ่นก่อนหน้าแบบ owner-only ไม่ใช่เว็บหลักปัจจุบัน
 
 ### Task 4 — HTTPS และโดเมน
 
@@ -80,9 +82,10 @@
 
 ### Task 5 — Edge Function origin
 
-- [ ] ตั้ง `ALLOWED_ORIGINS` สำหรับ localhost และโดเมนจริง
-- [ ] ตรวจ CORS preflight และ origin ที่ไม่ได้รับอนุญาต
-- [ ] ตรวจ token และ role owner ฝั่ง server
+- [x] ตั้ง `ALLOWED_ORIGINS` ให้รวม localhost และ Vercel URL
+- [x] ตรวจ CORS preflight: Vercel ได้ 204 และ origin ที่ไม่อนุญาตได้ 403
+- [x] ตรวจคำขอที่ไม่มี session ถูกปฏิเสธด้วย 401
+- [ ] ทดสอบหน้า “ผู้ใช้งาน” ด้วย owner session บนเว็บ Vercel
 
 ### Task 6 — ทดสอบ production flow
 
@@ -572,7 +575,7 @@ export const config = {
    - [x] ตรวจสภาพ project `rhkilsnuqdkzwlncjvkj` และยืนยันว่า migration ที่จะ deploy มีเพียง `20260929000000_initial_po_schema.sql`
    - [x] Link project, ตรวจ `db push --dry-run`, deploy migration และตรวจ `supabase migration list` ให้ local/remote ตรงกัน
    - [x] ยืนยัน owner Auth user และเพิ่ม `profiles` ด้วย UUID เดียวกัน โดยไม่ใส่รหัสผ่านใน Git
-   - [x] Deploy `manage-user` Edge Function, ตั้ง `ALLOWED_ORIGINS=http://localhost:4180` และทดสอบ endpoint: origin ที่อนุญาตได้ `204`, origin อื่นได้ `403`, คำขอไม่มี session ได้ `401`
+   - [x] Deploy `manage-user` Edge Function, ตั้ง `ALLOWED_ORIGINS` ให้รวม `http://localhost:4180` และ `https://po-six-lemon.vercel.app`; preflight ของ origin ที่อนุญาตได้ `204`, origin อื่นได้ `403`, คำขอไม่มี session ได้ `401`
    - [x] ทดสอบ owner login/หน้าจัดการผู้ใช้ และ office login/รายการ PO/ฟอร์มสร้าง PO ผ่าน session จริง; office ไม่เห็นเมนูผู้ใช้งาน
    - [x] ปิด `qa.office01` และยืนยัน login ถูกปฏิเสธด้วย `User is banned`
    - [x] ใช้ session office ที่ยังเปิดอยู่หลัง owner ปิดบัญชี: โหลดแผนก/สาขาและเปิด PO เดิมไม่สำเร็จ; owner ยังอ่าน PO และรายละเอียดได้
@@ -590,14 +593,16 @@ export const config = {
    - [ ] ตรวจเว็บ production หลัง Deploy ว่าไม่ fallback ไป demo (Task 3)
    - **ปิดงานเมื่อ:** เว็บอ่านและเขียนข้อมูลใน project PO ตามสิทธิ์จริง และไม่แสดงเลข `DEMO-` สำหรับข้อมูลใหม่
 
-3. **เผยแพร่ไฟล์เว็บจาก `dist/` — release แรกสำเร็จ; production verification และสิทธิ์พนักงานยังค้าง**
+3. **เผยแพร่เว็บบน Vercel — URL ใช้งานได้และตรวจ assets ตรงกับ repo แล้ว; browser flow และ rollback ยังรอทดสอบ**
 
-   - [x] ใช้ Sites project PO เดิม ไม่สร้างเว็บซ้ำ; production URL คือ [https://po-desk-office.grandsfoods.chatgpt.site](https://po-desk-office.grandsfoods.chatgpt.site)
-   - [x] อัปโหลด *เนื้อหาภายใน* `dist/` เป็น root รวม `vendor/exceljs.min.js`, ใบอนุญาต, CSS, JS, config และ favicon; Sites บันทึก release แรกแล้ว
-   - [ ] ตรวจหน้าเริ่มต้นและทุก asset ว่าโหลดสำเร็จด้วย MIME type ที่ถูกต้อง ไม่มี 404 หรือ console error
-   - [ ] ตรวจเวอร์ชันไฟล์หลัง deploy และวิธีย้อนกลับไป release ก่อนหน้าเมื่อพบปัญหา
-   - [ ] ตรวจ production ว่า Supabase error ไม่เปลี่ยนไปใช้ข้อมูล demo; ยืนยันสิทธิ์เจ้าหน้าที่ก่อนเปิดให้ใช้งาน
-   - **ปิดงานเมื่อ:** production URL และ assets ผ่านการตรวจ และผู้ใช้ที่ได้รับอนุญาตเปิดหน้าได้ตามที่ตั้งใจ
+   - [x] ใช้ URL ที่ผู้ใช้ deploy เป็น production หลัก: [https://po-six-lemon.vercel.app/](https://po-six-lemon.vercel.app/)
+   - [x] ตรวจหน้าเว็บ, JS, CSS, config, favicon และ vendor assets ตอบ HTTP 200; เนื้อหาไฟล์หลักตรงกับ `dist/` ใน repo
+   - [x] ตรวจ config ที่เผยแพร่ชี้ Supabase project PO และไม่มี service role key
+   - [ ] ให้เจ้าของทดสอบ login, รายการ PO และเมนูจัดการบัญชีบน Vercel ด้วยตนเอง; ไม่ส่งรหัสผ่านให้ผู้ช่วย
+   - [ ] ตรวจ browser console/network และทดสอบ production ว่า Supabase error ไม่เปลี่ยนไปใช้ข้อมูล demo
+   - [ ] บันทึกขั้นตอนย้อน release ใน Vercel
+   - หมายเหตุ: Sites URL เดิมเป็น release ก่อนหน้าแบบ owner-only; ไม่ใช่ URL production หลักปัจจุบัน
+   - **ปิดงานเมื่อ:** ผู้ใช้ที่ได้รับอนุญาตใช้งาน flow หลักบน Vercel ได้, error ไม่ fallback ไป demo และมีวิธีย้อน release ที่ตรวจแล้ว
 
 4. **ตั้ง HTTPS และโดเมน — ยังไม่ดำเนินการ**
 
@@ -606,11 +611,12 @@ export const config = {
    - [ ] ตรวจการเข้าเว็บจากมือถือและคอมพิวเตอร์ รวมถึงการโหลดหน้าใหม่และกลับเข้าสู่ระบบ
    - **ปิดงานเมื่อ:** URL จริงเปิดผ่าน HTTPS ได้สม่ำเสมอและไม่มีคำเตือนเรื่องใบรับรอง
 
-5. **กำหนด `ALLOWED_ORIGINS` ให้ Edge Function — ยังไม่ดำเนินการ**
+5. **กำหนด `ALLOWED_ORIGINS` ให้ Edge Function — CORS ของ Vercel ผ่าน; ยังรอทดสอบ owner flow จากเว็บจริง**
 
-   - [ ] ใส่ origin ของเว็บ PO จริงแบบตรงตัว (`https://โดเมน` ไม่มี path) และ `http://localhost:4180` เฉพาะเมื่อยังต้องทดสอบในเครื่อง
-   - [ ] Deploy secret/config ของ `manage-user` แล้วตรวจ preflight CORS จาก origin ที่อนุญาต
-   - [ ] ทดสอบว่าหน้า “ผู้ใช้งาน” ของเจ้าของเรียก function ได้ และ origin อื่นไม่ได้รับอนุญาต
+   - [x] ตั้ง allowlist ให้รวม `http://localhost:4180` และ `https://po-six-lemon.vercel.app` โดยไม่ใส่ path
+   - [x] ตรวจ preflight จาก Vercel ได้ `204`; origin ที่ไม่อนุญาตได้ `403`
+   - [x] ตรวจ POST ที่ไม่มี session จาก Vercel ได้ `401` (ยังปฏิเสธเมื่อไม่มี authentication)
+   - [ ] ให้เจ้าของทดสอบเมนู “ผู้ใช้งาน” บนเว็บ Vercel ด้วย session ของตน
    - **ปิดงานเมื่อ:** เจ้าของจัดการบัญชีจากเว็บจริงได้ โดย function ยังคงตรวจ token และบทบาทฝั่ง server
 
 6. **ทดสอบ flow จริงทุกบทบาท — ยังไม่ผ่านการทดสอบบน Supabase จริง**
