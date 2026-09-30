@@ -18,6 +18,7 @@
 - ราคาสุทธิ 3,000 บาทที่ติ๊ก VAT คำนวณทันทีเป็นฐาน 2,803.74 บาท และ VAT 196.26 บาท ทั้งฟอร์มและหน้าตรวจทาน
 - หน้ารายเดือนรวมยอดสถานะที่อนุมัติแล้วได้ 8,625.00 บาท และคำสั่ง Export Excel แสดงผลสำเร็จ
 - บัญชีเจ้าของเห็นหน้าจัดการบัญชีออฟฟิศ บัญชีออฟฟิศไม่เห็นเมนูนี้
+- Supabase จริง: owner session เปิดหน้าจัดการผู้ใช้ได้; `qa.office01` login ได้, อ่านรายการ PO และเปิดฟอร์มสร้าง PO ได้โดยไม่ submit; เมนูผู้ใช้งานไม่ปรากฏใน session office
 - เจ้าของไม่สามารถเรียกรายงานรวมได้ บัญชีออฟฟิศต้องได้รับ `can_export_report=true`; หน้าเว็บซ่อนเมนูและ RPC ตรวจสิทธิ์ซ้ำ
 - รายการตรวจ browser ด้านล่างเป็นผลตรวจเดิมก่อนแก้ schema/หน้าแผนกครั้งนี้
 - ตรวจ viewport 390 × 844 แล้ว ฟอร์มและการ์ดไม่ล้นแนวนอน เมนูหลักเลื่อนได้และซ่อน scrollbar
@@ -29,7 +30,7 @@
 - Owner Auth user/profile ถูกสร้างโดยใช้ UUID เดียวกัน (ไม่บันทึกข้อมูลรับรองลง Git)
 - `manage-user` deploy แล้ว; preflight จาก `http://localhost:4180` ได้ 204, origin อื่นได้ 403, ไม่มี session ได้ 401
 - `dist/config.js` ชี้ Project URL และ Publishable key ไปยัง project PO; local config และหน้าเว็บตอบ 200 และ Auth health endpoint ตอบ 200
-- ยังไม่ทดสอบ sign-in/session จริง, role owner/office/disabled ผ่าน session, refresh/expiry, RPC/RLS บน production, multi-device หรือ production export
+- ทดสอบ sign-in และ role owner/office ผ่านหน้าเว็บจริงแล้ว แต่ยังไม่ทดสอบ disabled-account lockout, refresh/expiry, RPC/RLS บน production, multi-device หรือ production export
 - ยังต้องยืนยันการปิด public signup ก่อนใช้งานจริง
 
 การแก้ครั้งก่อนทดสอบการบันทึกแผนกแยกตามรายการสินค้า, สิทธิ์อ่าน `po_items`, การเพิ่มและเก็บแผนก, การห้ามออฟฟิศทั่วไปยืนยันรับสินค้าของคนอื่น และการปฏิเสธ RPC สำหรับบัญชีที่ปิดใช้งานใน PGlite แล้ว
