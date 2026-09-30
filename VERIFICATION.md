@@ -7,7 +7,7 @@
 - ครอบคลุม NON VAT, rounding, validation, วันที่ผิด, lifecycle, เหตุผลปฏิเสธ, invoice gate, monthly report permission, idempotency, RLS, anonymous/outsider, direct write denial และ atomic rollback
 - PostgreSQL ทดสอบด้วย PGlite ฐานใหม่แยกทุกครั้ง โดยจำลอง `auth.uid()` ไม่แตะฐานจริง
 - REST adapter ทดสอบด้วย mock fetch สำหรับ login, paging, create date/request UUID, monthly report, network failure และ session expiry
-- เพิ่ม test สำหรับ persist/restore session หลัง reload, refresh token ที่ใกล้หมดอายุ และล้าง session เมื่อ profile ถูกปิด
+- เพิ่ม test สำหรับ persist/restore session หลัง reload, refresh token ที่ใกล้หมดอายุ, network error ระหว่าง restore โดยเก็บ session เพื่อ retry และล้าง session เมื่อ profile ถูกปิด
 - Supabase จริง: owner login แล้ว reload หน้าเว็บ; กลับเข้าหน้ารายการโดยไม่ต้อง login ซ้ำ และโหลดรายการ PO จาก project ได้
 - `npm run check` ผ่านสำหรับ `app.js`, `api.js`, `domain.js`, `export.js`
 - Strict UI audit รอบแก้ครั้งนี้: 0 findings

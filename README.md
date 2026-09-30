@@ -58,7 +58,7 @@
 - [x] ใส่ Publishable key โดยไม่ใส่ Service Role key
 - [x] ตรวจว่า URL/key ชี้ project PO และ local web ใช้ config นี้ (หน้าเว็บ, config และ Auth health ตอบ `200`)
 - [x] เพิ่มการบันทึก/กู้คืน Supabase session และตรวจ profile/RLS ตอนเปิดหน้า; ล้าง session เมื่อ profile ถูกปิด
-- [x] ทดสอบจำลอง reload, refresh token ใกล้หมดอายุ และ disabled profile ด้วย mock REST
+- [x] ทดสอบจำลอง reload, refresh token ใกล้หมดอายุ, disabled profile และ network failure โดยคง session ไว้และไม่คืนข้อมูล demo ด้วย mock REST
 - [x] ทดสอบ owner login แล้ว reload หน้าเว็บจริง: session ยังอยู่และรายการ PO โหลดได้
 - [ ] ตรวจ session หมดอายุและ network error บน browser จริง
 - [ ] ยืนยันว่าเว็บ production ไม่ fallback ไปข้อมูล demo
@@ -579,7 +579,7 @@ export const config = {
 
    - [x] นำ Project URL และ Publishable key ของ project PO ใส่ใน `dist/config.js`; ห้ามใส่ Secret/Service Role key
    - [x] ตรวจว่า URL/key ชี้ project PO เท่านั้น (หน้าเว็บ, config และ Auth health ตอบ `200`)
-   - [x] เพิ่ม persist/restore session, refresh token ที่ใกล้หมดอายุ และตรวจ profile ที่ยัง active ตอนเริ่มเว็บ; mock tests ผ่าน
+   - [x] เพิ่ม persist/restore session, refresh token ที่ใกล้หมดอายุ และตรวจ profile ที่ยัง active ตอนเริ่มเว็บ; mock tests ยืนยัน network error ไม่ fallback เป็นข้อมูล demo
    - [x] ยืนยัน owner login/reload จริงแล้ว session อยู่และโหลดรายการจาก Supabase ได้
    - [ ] ทดสอบ expiry/network error จริง และยืนยันไม่มี fallback ไป demo บน browser ที่เชื่อม project PO
    - **ปิดงานเมื่อ:** เว็บอ่านและเขียนข้อมูลใน project PO ตามสิทธิ์จริง และไม่แสดงเลข `DEMO-` สำหรับข้อมูลใหม่

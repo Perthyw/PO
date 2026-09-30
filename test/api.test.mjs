@@ -40,6 +40,7 @@ test('REST adapter: login, paging, create payload, report, failed network and ex
     assert.deepEqual(JSON.parse(calls.at(-1).init.body),{p_action:'archive',p_name:'สาขาใหม่'});
     const key=crypto.randomUUID();
     fail=true;
+    await assert.rejects(()=>api.list('',1),/เชื่อมต่อไม่ได้/);
     await assert.rejects(()=>api.create([],'2026-09-25',key),/เชื่อมต่อไม่ได้/);
     fail=false;
     await api.create([],'2026-09-25',key);
