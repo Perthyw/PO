@@ -53,7 +53,7 @@ Local Thai-capable Tahoma/Leelawadee UI, 16px base and 1.65 line height. Support
 
 ## Layout
 
-238px desktop navigation, max content 1320px, 42px content inset. The signed-in role and account switch sit under the product name in the desktop sidebar; the top bar keeps the breadcrumb and notification bell. At 1100px reduce navigation/inset and stack each order tracker; at 700px compact horizontal navigation and two-column summary tiles, one-column forms. Document owns vertical scrolling; tables own horizontal overflow. Mobile inset 16px. Forms grow naturally.
+238px desktop navigation, max content 1320px, 42px content inset. The signed-in role and account switch sit under the product name in the desktop sidebar; the top bar keeps the breadcrumb and notification bell. At 1100px reduce navigation/inset, wrap the sidebar wordmark within its rail, show dashboard metrics in two columns, and stack each order tracker; at 700px compact horizontal navigation and two-column summary tiles, one-column forms. Document owns vertical scrolling; tables own horizontal overflow. Mobile inset 16px. Forms grow naturally.
 
 ## Elevation & Depth
 

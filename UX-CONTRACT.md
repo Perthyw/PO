@@ -37,6 +37,8 @@ Select/Listbox and Table Selection are not applicable (no dropdown or bulk selec
 
 Thai labels, Thai dates and Bangkok timezone, two-decimal THB. Native operating-system text/number/checkbox inputs; no authored picker. Semantic buttons and tables. Visible keyboard focus. Modal focus trap/inert background via HTML dialog; restore focus when opener survives. Screen-reader text on completed progress steps. Error feedback role alert, success role status. Global scrollbar visible; no whole-page horizontal overflow. No speculative legal copy or payments.
 
+At small laptop widths (1100px and below), dashboard metric cards reflow to two columns and the sidebar wordmark wraps inside the navigation rail. At phone widths (700px and below), retain two-column metrics and use compact horizontal navigation.
+
 ## Verification
 
 test/database.test.mjs tests real PostgreSQL behavior in isolated PGlite with a mocked Supabase auth.uid/session boundary. This is not a real Supabase integration test. test/domain.test.mjs tests money and state rules. VERIFICATION.md records exact checks and browser coverage; missing external integration remains explicit.
