@@ -70,7 +70,7 @@
 - [x] ตรวจหน้าเว็บและ assets หลักบน Vercel ตอบ 200 และเนื้อหา JS/CSS/config ตรงกับไฟล์ใน `dist/` ของ repo
 - [x] ตรวจ config บนเว็บชี้ Supabase project PO และใช้ publishable key โดยไม่มี service role key
 - [x] เจ้าของยืนยัน login, รายการ PO และเมนูจัดการบัญชีบนเว็บ Vercel ผ่านแล้ว (2026-10-01)
-- [ ] ตรวจ browser console บนเว็บ Vercel ว่าไม่มี error
+- [x] ผู้ใช้ตรวจ browser console บนเว็บ Vercel และยืนยันว่าไม่มี error (2026-10-01)
 - [x] ทดสอบเว็บ production ขณะ Offline แล้วไม่ fallback ไปข้อมูล demo; กลับ No throttling และโหลดใหม่ได้ (ผู้ใช้ยืนยัน 2026-10-01)
 - [x] ตรวจวิธีย้อน release ผ่าน Instant Rollback; ไม่กด Confirm จึงไม่เปลี่ยน production
 - หมายเหตุ: เว็บ Sites เดิม [po-desk-office.grandsfoods.chatgpt.site](https://po-desk-office.grandsfoods.chatgpt.site) เป็นรุ่นก่อนหน้าแบบ owner-only ไม่ใช่เว็บหลักปัจจุบัน
@@ -594,14 +594,14 @@ export const config = {
    - [x] ตรวจเว็บ production หลัง Deploy ว่าไม่ fallback ไป demo ขณะ Offline (Task 3, ผู้ใช้ยืนยัน 2026-10-01)
    - **ปิดงานเมื่อ:** เว็บอ่านและเขียนข้อมูลใน project PO ตามสิทธิ์จริง และไม่แสดงเลข `DEMO-` สำหรับข้อมูลใหม่
 
-3. **เผยแพร่เว็บบน Vercel — URL, assets, owner flow, offline fallback และวิธี rollback ผ่านการตรวจ; ยังรอตรวจ console**
+3. **เผยแพร่เว็บบน Vercel — URL, assets, owner flow, offline fallback, วิธี rollback และ browser console ผ่านการตรวจ**
 
    - [x] ใช้ URL ที่ผู้ใช้ deploy เป็น production หลัก: [https://po-thegrands.vercel.app/](https://po-thegrands.vercel.app/)
    - [x] ตรวจหน้าเว็บ, JS, CSS, config, favicon และ vendor assets ตอบ HTTP 200; เนื้อหาไฟล์หลักตรงกับ `dist/` ใน repo
    - [x] ตรวจ config ที่เผยแพร่ชี้ Supabase project PO และไม่มี service role key
    - [x] เจ้าของยืนยัน login, รายการ PO และเมนูจัดการบัญชีบน Vercel ผ่านแล้ว (2026-10-01); ไม่ส่งรหัสผ่านให้ผู้ช่วย
    - [x] ทดสอบ Network Offline บนเว็บจริง ไม่แสดงข้อมูล demo; คืน No throttling แล้วลองโหลดใหม่ผ่าน (ผู้ใช้ยืนยัน 2026-10-01)
-   - [ ] ตรวจ browser console/network ว่าไม่มี error
+   - [x] ผู้ใช้ตรวจ browser console บนเว็บ Vercel และยืนยันว่าไม่มี error (2026-10-01)
    - [x] ตรวจขั้นตอน Instant Rollback จาก Vercel Dashboard แล้ว; ยังไม่ได้กด Confirm หรือเปลี่ยน production
    - หมายเหตุ: Sites URL เดิมเป็น release ก่อนหน้าแบบ owner-only; ไม่ใช่ URL production หลักปัจจุบัน
    - **ปิดงานเมื่อ:** ผู้ใช้ที่ได้รับอนุญาตใช้งาน flow หลักบน Vercel ได้, error ไม่ fallback ไป demo, ตรวจ console และมีวิธีย้อน release ที่ตรวจแล้ว
