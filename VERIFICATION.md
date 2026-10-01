@@ -1,4 +1,4 @@
-# ผลตรวจ PO The Grands — อัปเดต 30 กันยายน 2026
+# ผลตรวจ PO The Grands — อัปเดต 1 ตุลาคม 2026
 
 ## อัตโนมัติ
 
@@ -38,6 +38,7 @@
 - Browser จริง (2026-09-30): ทดสอบ DevTools Network > Offline ขณะหน้า PO เปิดอยู่ หน้าแสดงข้อความเชื่อมต่อไม่ได้และปุ่ม “ลองโหลดใหม่” โดยไม่แสดงข้อมูล demo; คืนเป็น No throttling และกดลองใหม่แล้วกลับมาใช้งานได้
 - ตรวจ flow ใน source: เมื่อมี Supabase URL และ Publishable key จะใช้ Supabase API; API/network error ถูกส่งเป็นข้อผิดพลาดและไม่มีการสลับไป demo adapter. ยืนยันด้วย mock REST, browser Offline จริง และผู้ใช้ทดสอบ Offline บน Vercel แล้ว
 - Vercel production (2026-10-01): ผู้ใช้ยืนยันว่า owner login, รายการ PO และเมนูจัดการบัญชีทำงาน; ทดสอบ Network Offline แล้วไม่มีข้อมูล demo และเมื่อตั้ง No throttling/ลองโหลดใหม่กลับมาได้; ผู้ใช้ตรวจ browser console แล้วรายงานว่าไม่มี error
+- Mobile production (2026-10-01): ผู้ใช้ยืนยันว่าเปิดเว็บบนมือถือและใช้งานได้ครบผ่าน HTTPS; Task 4 ผ่านตามการยืนยันของผู้ใช้
 - Supabase Dashboard (2026-10-01): ตรวจ URL หน้า Backups แล้วถูกพาไปหน้า sign-in; ยังตรวจ Security Advisor, plan/backups ที่เปิดใช้ และรายชื่อผู้ดูแลจาก Dashboard จริงไม่ได้จนกว่าเจ้าของจะเข้าสู่ระบบ
 - Backup plan caveat: เอกสาร Supabase ปัจจุบันระบุว่า Free plan ไม่มี automatic daily backups ที่ดาวน์โหลดได้; ต้องทำ CLI logical dump ไปเก็บนอก GitHubหรือใช้แผนที่มี daily backups ก่อนปิด Task 7
 - Vercel assets (2026-09-30): หน้าเว็บและ assets ที่ตรวจ (JS/CSS/config/favicon/vendor) ตอบ HTTP 200 และไฟล์ JS/CSS/config หลักตรงกับ `dist/` ใน repo; config ชี้ Supabase project PO และมี publishable key โดยไม่มี service role key

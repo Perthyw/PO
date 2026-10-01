@@ -79,7 +79,7 @@
 
 - [x] เลือกโดเมน Vercel สำหรับ PO: `https://po-thegrands.vercel.app/`
 - [x] เปิดเว็บ production ผ่าน HTTPS และตรวจ assets/config บน URL นี้แล้ว; Vercel จัดการ DNS และ TLS ของ subdomain ให้
-- [ ] ตรวจเปิดใช้งานจากมือถือโดยไม่มี certificate warning (ตรวจบนคอมพิวเตอร์แล้ว)
+- [x] ผู้ใช้ยืนยันว่าเปิดเว็บบนมือถือและใช้งานได้ครบผ่าน HTTPS (2026-10-01)
 
 ### Task 5 — Edge Function origin
 
@@ -606,11 +606,11 @@ export const config = {
    - หมายเหตุ: Sites URL เดิมเป็น release ก่อนหน้าแบบ owner-only; ไม่ใช่ URL production หลักปัจจุบัน
    - **ปิดงานเมื่อ:** ผู้ใช้ที่ได้รับอนุญาตใช้งาน flow หลักบน Vercel ได้, error ไม่ fallback ไป demo, ตรวจ console และมีวิธีย้อน release ที่ตรวจแล้ว
 
-4. **ตั้ง HTTPS และโดเมน — Vercel domain/HTTPS ผ่าน; เหลือเช็กบนมือถือ**
+4. **ตั้ง HTTPS และโดเมน — ผ่าน**
 
    - [x] ใช้โดเมน Vercel แยกของ PO: `https://po-thegrands.vercel.app/`; ไม่ต้องซื้อ custom domain เพื่อใช้เว็บนี้
    - [x] เปิดเว็บจริงผ่าน HTTPS และตรวจ assets/config; Vercel provision certificate ให้ subdomain โดยอัตโนมัติ
-   - [ ] ตรวจการเข้าเว็บจากมือถือ รวมถึงโหลดหน้าใหม่และกลับเข้าสู่ระบบ (คอมพิวเตอร์ผ่านแล้ว)
+   - [x] ผู้ใช้ยืนยันว่าเปิดเว็บบนมือถือและใช้งานได้ครบผ่าน HTTPS (2026-10-01)
    - **ปิดงานเมื่อ:** URL จริงเปิดผ่าน HTTPS ได้สม่ำเสมอและไม่มีคำเตือนเรื่องใบรับรอง
 
 5. **กำหนด `ALLOWED_ORIGINS` ให้ Edge Function — ผ่านทั้ง CORS, auth guard และ owner flow บน Vercel**
@@ -639,7 +639,7 @@ export const config = {
    - [ ] วางวิธีเก็บ migration เวอร์ชันถัดไป ตรวจ `--dry-run` และ rollback/แก้ไขแบบ forward migration โดยไม่ทดลองลบข้อมูลบน production
    - **ปิดงานเมื่อ:** กู้ข้อมูลจาก backup ที่ทดสอบได้และผลตรวจสิทธิ์/ความปลอดภัยไม่มีประเด็นค้างที่กระทบการเปิดใช้จริง
 
-ขั้นตอนเชื่อมและเผยแพร่เพิ่มเติมอยู่ใน [SUPABASE-SETUP.md](SUPABASE-SETUP.md) และ [DEPLOY.md](DEPLOY.md) ขณะนี้ Task 1, 2, 3 และ 5 ผ่านตามหลักฐานด้านบน; Task 4 เหลือเช็กมือถือ, Task 6 เหลือ business flow บนข้อมูลจริง/สภาพแวดล้อมทดสอบ และ Task 7 เหลือยืนยัน backup/security บน Dashboard
+ขั้นตอนเชื่อมและเผยแพร่เพิ่มเติมอยู่ใน [SUPABASE-SETUP.md](SUPABASE-SETUP.md) และ [DEPLOY.md](DEPLOY.md) ขณะนี้ Task 1–5 ผ่านตามหลักฐานด้านบน; Task 6 เหลือ business flow บนข้อมูลจริง/สภาพแวดล้อมทดสอบ และ Task 7 เหลือยืนยัน backup/security บน Dashboard
 
 ## การทดสอบ
 
