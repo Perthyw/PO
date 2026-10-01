@@ -32,12 +32,14 @@
 
 - Project `rhkilsnuqdkzwlncjvkj`: `db push --dry-run` ผ่าน; migration `20260929000000` อยู่ทั้ง local และ remote
 - Owner Auth user/profile ถูกสร้างโดยใช้ UUID เดียวกัน (ไม่บันทึกข้อมูลรับรองลง Git)
-- `manage-user` deploy แล้ว; preflight จาก `http://localhost:4180` และ `https://po-thegrands.vercel.app` ได้ 204, origin อื่นได้ 403, ไม่มี session จาก Vercel ได้ 401; owner session บน Vercel ยังรอผู้ใช้ทดสอบเอง
+- `manage-user` deploy แล้ว; preflight จาก `http://localhost:4180` และ `https://po-thegrands.vercel.app` ได้ 204, origin อื่นได้ 403, ไม่มี session จาก Vercel ได้ 401; เจ้าของยืนยันเปิดหน้า “ผู้ใช้งาน” บน Vercel ด้วย owner session ได้ (2026-10-01)
 - `dist/config.js` ชี้ Project URL และ Publishable key ไปยัง project PO; local config และหน้าเว็บตอบ 200 และ Auth health endpoint ตอบ 200
 - ทดสอบ sign-in, role owner/office, disabled-account login lockout, RLS read ด้วย office session เดิมหลังปิดบัญชี และ owner session persistence หลัง reload ผ่านหน้าเว็บจริงแล้ว; จำลองเวลาหมดอายุใน local session แล้ว reload พบว่า refresh token กับ Supabase สำเร็จและกลับรายการโดยไม่ถาม login ใหม่; ยังไม่ได้รอ JWT หมดอายุจริงตามเวลา รวมถึง production write RPC ทุกบทบาท, multi-device และ production export
 - Browser จริง (2026-09-30): ทดสอบ DevTools Network > Offline ขณะหน้า PO เปิดอยู่ หน้าแสดงข้อความเชื่อมต่อไม่ได้และปุ่ม “ลองโหลดใหม่” โดยไม่แสดงข้อมูล demo; คืนเป็น No throttling และกดลองใหม่แล้วกลับมาใช้งานได้
 - ตรวจ flow ใน source: เมื่อมี Supabase URL และ Publishable key จะใช้ Supabase API; API/network error ถูกส่งเป็นข้อผิดพลาดและไม่มีการสลับไป demo adapter. ยืนยันด้วย mock REST, browser Offline จริง และผู้ใช้ทดสอบ Offline บน Vercel แล้ว
 - Vercel production (2026-10-01): ผู้ใช้ยืนยันว่า owner login, รายการ PO และเมนูจัดการบัญชีทำงาน; ทดสอบ Network Offline แล้วไม่มีข้อมูล demo และเมื่อตั้ง No throttling/ลองโหลดใหม่กลับมาได้; ผู้ใช้ตรวจ browser console แล้วรายงานว่าไม่มี error
+- Supabase Dashboard (2026-10-01): ตรวจ URL หน้า Backups แล้วถูกพาไปหน้า sign-in; ยังตรวจ Security Advisor, plan/backups ที่เปิดใช้ และรายชื่อผู้ดูแลจาก Dashboard จริงไม่ได้จนกว่าเจ้าของจะเข้าสู่ระบบ
+- Backup plan caveat: เอกสาร Supabase ปัจจุบันระบุว่า Free plan ไม่มี automatic daily backups ที่ดาวน์โหลดได้; ต้องทำ CLI logical dump ไปเก็บนอก GitHubหรือใช้แผนที่มี daily backups ก่อนปิด Task 7
 - Vercel assets (2026-09-30): หน้าเว็บและ assets ที่ตรวจ (JS/CSS/config/favicon/vendor) ตอบ HTTP 200 และไฟล์ JS/CSS/config หลักตรงกับ `dist/` ใน repo; config ชี้ Supabase project PO และมี publishable key โดยไม่มี service role key
 - Vercel rollback: ตรวจวิธีผ่าน Instant Rollback ใน Dashboard แล้ว แต่ยังไม่ได้กด Confirm หรือเปลี่ยน production; Vercel ระบุว่าหลัง rollback ต้อง Undo Rollback/โปรโมต deployment เพื่อเปิด auto-assignment กลับ
 - Supabase CORS (2026-09-30): `ALLOWED_ORIGINS` อนุญาต `http://localhost:4180` และ `https://po-thegrands.vercel.app`; preflight ของโดเมนใหม่ได้ 204, origin ที่ไม่ได้อนุญาตได้ 403 และ POST ที่ไม่มี session ได้ 401

@@ -43,6 +43,23 @@ body{background:var(--paper)}button:hover{background:#eaf5ff;border-color:#86b9e
 @media(max-width:1100px){.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metric{min-width:0}}
 
 .tracker.status-pending li.current:before{box-shadow:0 0 0 4px #fff8e8;border-color:#a80b07}.tracker.status-pending li.current{color:#a80b07}.tracker.status-approved li.current:before{box-shadow:0 0 0 4px #eef7ff;border-color:#2878c7}.tracker.status-approved li.current{color:#2878c7}.tracker.status-received li.current:before{box-shadow:0 0 0 4px #f5f0fb;border-color:#79509d}.tracker.status-received li.current{color:#79509d}.tracker.status-closed li.current:before{box-shadow:0 0 0 4px #edf8f3;border-color:#287f5c}.tracker.status-closed li.current{color:#287f5c}
+/* Keep every waiting step consistently highlighted in red. */
+.tracker li.current:before{border-color:var(--danger);box-shadow:0 0 0 4px #93040018}
+.tracker.status-pending li.current:before,.tracker.status-approved li.current:before,.tracker.status-received li.current:before,.tracker.status-closed li.current:before{border-color:var(--danger);box-shadow:0 0 0 4px #93040018}
+.tracker.status-pending li.current,.tracker.status-approved li.current,.tracker.status-received li.current,.tracker.status-closed li.current{color:var(--danger)}
+/* Stable alignment for monetary summaries at phone widths. */
+.summary .row.spread{display:grid;grid-template-columns:minmax(0,1fr) max-content;gap:12px;align-items:baseline}
+.summary .row.spread>strong{text-align:right;white-space:nowrap}
+/* Give owner-managed account rows a consistent identity and action layout on mobile. */
+.route-users .user-identity{display:flex;align-items:center;gap:8px;flex:1;min-width:0;flex-wrap:wrap}
+.route-users .user-identity>strong{overflow-wrap:anywhere}
+.route-users .user-identity .permission-badge{margin:0;flex:0 0 auto}
+@media(max-width:700px){.route-users .user-row{display:grid;grid-template-columns:34px minmax(0,1fr);grid-template-areas:"avatar identity" "actions actions";align-items:center;gap:8px 10px}.route-users .user-row>.avatar{grid-area:avatar}.route-users .user-identity{grid-area:identity}.route-users .user-actions{grid-area:actions;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;width:auto;margin:0}.route-users .user-actions button{width:100%;min-width:0}}
+/* Keep the detail page's back action compact but screen-reader named. */
+.po-back{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;font-size:25px;line-height:1}
+.po-meta{display:grid;gap:2px;margin:0}
+.po-meta-date{display:block}
+.po-meta-requester{display:block}
 /* Keep each order status badge on the same palette as its summary card. */
 .badge.pending{background:#fff8e8;border:1px solid #e3bd65;color:#294f70}
 .badge.approved{background:#eef7ff;border:1px solid #82b9e6;color:#294f70}
@@ -54,3 +71,5 @@ body{background:var(--paper)}button:hover{background:#eaf5ff;border-color:#86b9e
 .report-metrics .metric:nth-child(4){background:#fff0f1;border-color:#f4aaa9}
 .department-row .department-archive{width:42px;min-height:36px;padding:7px;display:grid;place-items:center;flex:0 0 42px}
 .department-row .department-archive svg{width:20px;height:20px;display:block}
+@media(max-width:700px){.report-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}
+@media(max-width:420px){.report-metrics .metric{padding:14px}.report-metrics .metric strong{font-size:27px}.report-metrics .metric .marker{right:14px;top:16px}}

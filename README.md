@@ -77,16 +77,16 @@
 
 ### Task 4 — HTTPS และโดเมน
 
-- [ ] กำหนดโดเมนหรือ subdomain ของ PO
-- [ ] ตั้ง DNS และ TLS/HTTPS
-- [ ] ตรวจเปิดใช้งานจากมือถือและคอมพิวเตอร์โดยไม่มี certificate warning
+- [x] เลือกโดเมน Vercel สำหรับ PO: `https://po-thegrands.vercel.app/`
+- [x] เปิดเว็บ production ผ่าน HTTPS และตรวจ assets/config บน URL นี้แล้ว; Vercel จัดการ DNS และ TLS ของ subdomain ให้
+- [ ] ตรวจเปิดใช้งานจากมือถือโดยไม่มี certificate warning (ตรวจบนคอมพิวเตอร์แล้ว)
 
 ### Task 5 — Edge Function origin
 
 - [x] ตั้ง `ALLOWED_ORIGINS` ให้รวม localhost และ Vercel URL
 - [x] ตรวจ CORS preflight: Vercel ได้ 204 และ origin ที่ไม่อนุญาตได้ 403
 - [x] ตรวจคำขอที่ไม่มี session ถูกปฏิเสธด้วย 401
-- [ ] ทดสอบหน้า “ผู้ใช้งาน” ด้วย owner session บนเว็บ Vercel
+- [x] เจ้าของยืนยันเปิดหน้า “ผู้ใช้งาน” ด้วย owner session บนเว็บ Vercel ได้ (2026-10-01)
 
 ### Task 6 — ทดสอบ production flow
 
@@ -606,14 +606,14 @@ export const config = {
    - หมายเหตุ: Sites URL เดิมเป็น release ก่อนหน้าแบบ owner-only; ไม่ใช่ URL production หลักปัจจุบัน
    - **ปิดงานเมื่อ:** ผู้ใช้ที่ได้รับอนุญาตใช้งาน flow หลักบน Vercel ได้, error ไม่ fallback ไป demo, ตรวจ console และมีวิธีย้อน release ที่ตรวจแล้ว
 
-4. **ตั้ง HTTPS และโดเมน — ยังไม่ดำเนินการ**
+4. **ตั้ง HTTPS และโดเมน — Vercel domain/HTTPS ผ่าน; เหลือเช็กบนมือถือ**
 
-   - [ ] กำหนดโดเมน/ซับโดเมนของ PO แยกจาก Grandhouse และตั้ง DNS ให้ชี้โฮสต์ที่เลือก
-   - [ ] เปิดใบรับรอง TLS และตรวจว่า URL จริงใช้ HTTPS โดยไม่มี mixed content
-   - [ ] ตรวจการเข้าเว็บจากมือถือและคอมพิวเตอร์ รวมถึงการโหลดหน้าใหม่และกลับเข้าสู่ระบบ
+   - [x] ใช้โดเมน Vercel แยกของ PO: `https://po-thegrands.vercel.app/`; ไม่ต้องซื้อ custom domain เพื่อใช้เว็บนี้
+   - [x] เปิดเว็บจริงผ่าน HTTPS และตรวจ assets/config; Vercel provision certificate ให้ subdomain โดยอัตโนมัติ
+   - [ ] ตรวจการเข้าเว็บจากมือถือ รวมถึงโหลดหน้าใหม่และกลับเข้าสู่ระบบ (คอมพิวเตอร์ผ่านแล้ว)
    - **ปิดงานเมื่อ:** URL จริงเปิดผ่าน HTTPS ได้สม่ำเสมอและไม่มีคำเตือนเรื่องใบรับรอง
 
-5. **กำหนด `ALLOWED_ORIGINS` ให้ Edge Function — CORS ของ Vercel ผ่าน; ยังรอทดสอบ owner flow จากเว็บจริง**
+5. **กำหนด `ALLOWED_ORIGINS` ให้ Edge Function — ผ่านทั้ง CORS, auth guard และ owner flow บน Vercel**
 
    - [x] ตั้ง allowlist ให้รวม `http://localhost:4180` และ `https://po-thegrands.vercel.app` โดยไม่ใส่ path
    - [x] ตรวจ preflight จาก Vercel ได้ `204`; origin ที่ไม่อนุญาตได้ `403`
@@ -633,18 +633,19 @@ export const config = {
 7. **ตั้ง backup และตรวจความปลอดภัย — ยังไม่ดำเนินการ**
 
    - [ ] กำหนดผู้เข้าถึง Supabase Dashboard สิทธิ์ที่จำเป็น และผู้รับผิดชอบการสำรองข้อมูล
-   - [ ] กำหนดรอบเก็บ backup/ระยะเก็บ และทดลอง restore ลง project ทดสอบแยกก่อนใช้งานจริง
+   - [ ] กำหนดรอบและที่เก็บ backup; ถ้า project ยังใช้ Free plan จะไม่มี automatic daily backups ที่ดาวน์โหลดได้ ต้องวาง manual `supabase db dump` ไปเก็บนอก GitHub หรือพิจารณาแผนที่มี backup
+   - [ ] ทดลอง restore ลง project ทดสอบแยกก่อนใช้งานจริง
    - [ ] ตรวจ Supabase Security Advisor, RLS ทุกตาราง, สิทธิ์ `EXECUTE` ของ RPC และการไม่เผย Secret/Service Role key
    - [ ] วางวิธีเก็บ migration เวอร์ชันถัดไป ตรวจ `--dry-run` และ rollback/แก้ไขแบบ forward migration โดยไม่ทดลองลบข้อมูลบน production
    - **ปิดงานเมื่อ:** กู้ข้อมูลจาก backup ที่ทดสอบได้และผลตรวจสิทธิ์/ความปลอดภัยไม่มีประเด็นค้างที่กระทบการเปิดใช้จริง
 
-ขั้นตอนเชื่อมและเผยแพร่เพิ่มเติมอยู่ใน [SUPABASE-SETUP.md](SUPABASE-SETUP.md) และ [DEPLOY.md](DEPLOY.md) ยังไม่มีข้อใดใน 7 งานหลักที่ถือว่าปิดงาน production แล้ว
+ขั้นตอนเชื่อมและเผยแพร่เพิ่มเติมอยู่ใน [SUPABASE-SETUP.md](SUPABASE-SETUP.md) และ [DEPLOY.md](DEPLOY.md) ขณะนี้ Task 1, 2, 3 และ 5 ผ่านตามหลักฐานด้านบน; Task 4 เหลือเช็กมือถือ, Task 6 เหลือ business flow บนข้อมูลจริง/สภาพแวดล้อมทดสอบ และ Task 7 เหลือยืนยัน backup/security บน Dashboard
 
 ## การทดสอบ
 
 สถานะล่าสุดในซอร์สชุดนี้:
 
-- `npm test` ผ่าน 20 tests
+- `npm test` ผ่าน 21 tests
 - `npm run check` ผ่าน
 - Strict UI audit: 0 findings
 - Database tests ใช้ PGlite ฐานใหม่แยกจากข้อมูลจริง
@@ -669,6 +670,7 @@ export const config = {
 ก่อนใช้งานจริงควรกำหนด
 
 - รอบ backup ของฐานข้อมูล
+- project ที่ใช้ Supabase Free ไม่มี automatic daily backups ที่ดาวน์โหลดได้; จึงต้องทำ logical dump ด้วย Supabase CLI และเก็บไฟล์ในที่เก็บสำรองที่จำกัดสิทธิ์ หรือเลือกแผนที่มี daily backups
 - ผู้มีสิทธิ์เข้า Supabase Dashboard
 - วิธี export ข้อมูลก่อน migration
 - วิธี restore ไป project ทดสอบก่อน production
