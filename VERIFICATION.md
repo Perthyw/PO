@@ -102,3 +102,5 @@
 - Supabase restore จริงใน project PO-restore-test-20261002 (tctartzpqrbxhkcgwmmu):7ตาราง hash/countsตรง source,10FK/policies/indexes/sequenceตรง;owner/primary8PO,disabled0;AuthUUIDplaceholders12ไม่มีemail/passwordและbanถาวร signuptargetปิด ไม่มีproductionrestore
 - ผลสำเนาสุดท้าย:profiles12/departments14/POs8/items9/events24/notifications30/commands24 sequence8; fileSHA256 fae192a174e87e8fcde53421f9d829906aa0d8f79f2d3345f3848cef4401abc5
 - BrowserAuth PO requestยังไม่ยืนยันsign-in แล้วผู้ใช้declinedการร้องขอถัดมา;หยุดการเข้าสู่ระบบและไม่กล่าวว่าทดสอบbrowserหลังloginแล้ว
+
+- Owner login timeout report2026-10-02:บัญชีจริง roleowner/deletednull/bannednull/emailconfirmedtrue/passwordexists/emailmatchestrue;ไม่ได้resetหรือbanเจ้าของ Authhealth200และsyntheticinvalidcredentialtoken400ตอบประมาณ9.4วินาทีจากruntime;browserแสดงnetworktimeoutไม่ใช่invalidpassword เพิ่มเฉพาะlogin/token+profileเวลารอ45วินาทีจาก15 และข้อความnetworkAuth ไม่เปลี่ยนเวลารอPOwrites ยังต้องผู้ใช้ลองบนเครือข่ายจริงก่อนสรุปหาย
