@@ -11,7 +11,7 @@ Deno.serve(async request=>{
   try{if(Number(request.headers.get('content-length')||0)>4096)return json({message:'ข้อมูลไม่ถูกต้อง'},400,origin);const raw=await request.text();if(new TextEncoder().encode(raw).length>4096)return json({message:'ข้อมูลไม่ถูกต้อง'},400,origin);body=JSON.parse(raw);}catch{return json({message:'ข้อมูลไม่ถูกต้อง'},400,origin);}
   if(!body||typeof body!=='object'||Array.isArray(body))return json({message:'ข้อมูลไม่ถูกต้อง'},400,origin);
   const action=body.action;
-  const fields=action==='login'?['action','username','password']:action==='update-login-name'?['action','username','currentPassword']:action==='change-password'?['action','newPassword','currentPassword']:[];
+  const fields=action==='request-recovery'?['action','username']:action==='login'?['action','username','password']:action==='update-login-name'?['action','username','currentPassword']:action==='change-password'?['action','newPassword','currentPassword']:[];
   if(!fields.length||Object.keys(body).some(key=>!fields.includes(key)))return json({message:'ข้อมูลไม่ถูกต้อง'},400,origin);
   const url=Deno.env.get('SUPABASE_URL')||'',anon=Deno.env.get('SUPABASE_ANON_KEY')||'',service=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')||'';
   const auth=async(path:string,method:string,token:string,payload?:unknown)=>{
@@ -27,6 +27,24 @@ Deno.serve(async request=>{
   const validName=(value:string)=>/^[a-z0-9._]{4,50}$/.test(value);
   const logout=async(token:string)=>{try{await auth('logout?scope=local','POST',token);}catch{/* Do not leak cleanup errors or credentials. */}};
   try{
+    if(action==='request-recovery'){
+      const identifier=name(body.username);
+      const generic={success:true,message:'หากข้อมูลตรงกับบัญชีเจ้าของ ระบบจะส่งลิงก์ตั้งรหัสผ่านไปยังอีเมลที่ลงทะเบียนไว้'};
+      const isEmail=/^[a-z0-9.!#$%&'*+\/=?^_`{|}~-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)+$/.test(identifier)&&identifier.length<=254;
+      if(!validName(identifier)&&!isEmail)return json(generic,200,origin);
+      const key=isEmail?'login_email':'login_name';
+      const found=await profiles('select=id,role,login_email&'+key+'=eq.'+encodeURIComponent(identifier)+'&role=eq.owner&deleted_at=is.null');
+      if(!found.ok||!Array.isArray(found.data))return json({message:'ส่งคำขอกู้บัญชีไม่ได้ กรุณาลองใหม่'},503,origin);
+      const owner=found.data.length===1&&found.data[0].role==='owner'?found.data[0]:null;
+      if(!owner||typeof owner.login_email!=='string'||!owner.login_email)return json(generic,200,origin);
+      // Redirect and recipient come from trusted server values, never caller-supplied email/URL.
+      try{
+        const sent=await auth('recover?redirect_to='+encodeURIComponent(origin+'/?view=recovery'),'POST',anon,{email:owner.login_email});
+        if(!sent.ok)console.warn('Owner recovery email provider rejected request');
+      }catch{console.warn('Owner recovery email provider request failed');}
+      // A public response must not reveal whether an owner or deliverable email exists.
+      return json(generic,200,origin);
+    }
     if(action==='login'){
       const username=name(body.username),password=typeof body.password==='string'?body.password:'';
       if(!validName(username)||!password||password.length>512)return json({message:invalidLogin},400,origin);

@@ -49,3 +49,8 @@ test/database.test.mjs tests real PostgreSQL behavior in isolated PGlite with a 
 ## Owner account settings
 
 Source: explicit user approval 2026-10-02. Reuse field(), passwordControl(), errorField(), withPending(), notify() and openModal() on the owner-only บัญชีของฉัน route. Separate alias and password forms require current-password proof; preserve values on failure, clear committed passwords on success, and never persist password drafts. Guard unsaved navigation. Alias update stays on the settings page; password update clears the local session and returns to signin with success feedback. Public alias signin returns tokens only after Auth password verification, never an unauthenticated email mapping.
+
+
+## Owner recovery
+
+Capture and remove callback URL secrets before session restoration. Validate Auth identity and active owner profile. Use existing masked controls, field validation, pending guards and generic notices; invalid links offer a new request. Never expose recipient email. Refresh after URL cleanup needs a new link.

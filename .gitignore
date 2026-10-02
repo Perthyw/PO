@@ -3,3 +3,11 @@ node_modules/
 .env
 *.tar.gz
 *.zip
+
+# Private credentials and encrypted backups
+supabase/.temp/
+.env.*
+!.env.example
+*.enc.json
+*backup-key*.json
+*recovery-key*.json
