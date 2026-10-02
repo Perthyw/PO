@@ -96,7 +96,7 @@
 - [ ] ทดสอบบัญชีหลัก, บัญชีทั่วไป, รายงาน, Excel, notification และ retry
 - [ ] ตรวจ responsive, keyboard/focus, session expiry และ browser console บนเว็บจริง
 
-สถานะ 2026-10-02: deploy `manage-user` version 5 พร้อม owner protection แล้ว; function source อ่านกลับตรงกัน ข้อ 1 ยังไม่ครบเพราะ Auth settings จริงยังเป็น `disable_signup=false` และต้องปิดผ่าน Dashboard. Task 6 production test data (ข้อ 2) ยังไม่อนุมัติ จึงไม่สร้างข้อมูลทดสอบ
+สถานะ 2026-10-02: deploy `manage-user` version 5 พร้อม owner protection แล้ว; function source อ่านกลับตรงกัน ข้อ 1 ครบแล้ว: ปิด public signup ผ่าน Dashboard และตรวจ Auth settings จริงได้ `disable_signup=true` (2026-10-02). Task 6 production test data (ข้อ 2) ยังไม่อนุมัติ จึงไม่สร้างข้อมูลทดสอบ
 
 ### Task 7 — Backup และ security
 
