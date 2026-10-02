@@ -62,7 +62,7 @@ Deno.serve(async request=>{
     if(!currentPassword||currentPassword.length>512)return json({message:'กรุณาระบุรหัสผ่านปัจจุบัน'},400,origin);
     const username=name(body.username),password=typeof body.newPassword==='string'?body.newPassword:'';
     if(action==='update-login-name'&&!validName(username))return json({message:'ชื่อเข้าระบบใช้ตัวอังกฤษ ตัวเลข จุด หรือขีดล่าง 4–50 ตัว'},400,origin);
-    if(action==='change-password'&&(password.length<8||password.length>512))return json({message:'รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร'},400,origin);
+    if(action==='change-password'&&(password.length<6||password.length>512))return json({message:'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร'},400,origin);
     const reauth=await auth('token?grant_type=password','POST',anon,{email:verified.data.email,password:currentPassword});
     if(!reauth.ok||!reauth.data?.access_token)return json({message:'รหัสผ่านปัจจุบันไม่ถูกต้อง'},400,origin);
     const fresh=reauth.data.access_token;

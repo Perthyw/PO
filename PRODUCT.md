@@ -14,4 +14,4 @@ Owner credentials and office credentials are required. The owner creates, edits,
 
 ## Owner self-account settings
 
-The owner may change their own login alias and password after verifying their current password. The original Auth email, UUID and owner role remain unchanged. Login aliases are lowercase, unique and case-insensitive at entry. Alias signin authenticates the password server-side without publishing an alias-to-email resolver. Password updates require at least eight characters and confirmation; successful password change returns the user to login. Office users cannot change owner credentials through this endpoint.
+The owner may change their own login alias and password after verifying their current password. The original Auth email, UUID and owner role remain unchanged. Login aliases are lowercase, unique and case-insensitive at entry. Alias signin authenticates the password server-side without publishing an alias-to-email resolver. Password updates require at least six characters and confirmation; successful password change returns the user to login. Office users cannot change owner credentials through this endpoint.
