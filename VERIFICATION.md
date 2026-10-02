@@ -47,7 +47,7 @@
 - Vercel alias (2026-09-30): ตรวจหลังผู้ใช้เปลี่ยนชื่อแล้ว `https://po-six-lemon.vercel.app/` ตอบ 404 ส่วน URL ใหม่ `https://po-thegrands.vercel.app/` ตอบ 200
 - PO list/report UI (2026-10-01): filter คง shell/ปุ่ม scope และสถานะระหว่างโหลด; การ์ดสรุปทั้งห้าสถานะแสดงตลอดและอัปเดตเฉพาะตัวเลข; คงหัวรายการ/refresh/filters แม้ผลว่าง, ซ่อนเฉพาะ pagination และแสดงปุ่มเปิด PO ใน empty state. ป้ายสถานะในรายการใช้พาเลตตรงกับการ์ด; การ์ด “ไม่อนุมัติ” ในรายงานรายเดือนใช้สีแดงอ่อน. `npm test` และ `npm run check` ผ่าน; เจ้าของยืนยันให้แสดงการ์ดทุกสถานะและหัวข้อรายการเมื่อผลว่าง
 - Sites รุ่นก่อนหน้า (2026-09-30): URL `https://po-desk-office.grandsfoods.chatgpt.site` ยังคงเป็น release แยกแบบ owner-only; ไม่ใช่ production URL หลักที่ผู้ใช้ระบุ
-- ยังต้องยืนยันการปิด public signup ก่อนใช้งานจริง
+- ปิด public signup และยืนยัน Auth settings จริง `disable_signup=true` แล้ว (2026-10-02; ดูหลักฐานท้ายเอกสาร)
 
 การแก้ครั้งก่อนทดสอบการบันทึกแผนกแยกตามรายการสินค้า, สิทธิ์อ่าน `po_items`, การเพิ่มและเก็บแผนก, การห้ามออฟฟิศทั่วไปยืนยันรับสินค้าของคนอื่น และการปฏิเสธ RPC สำหรับบัญชีที่ปิดใช้งานใน PGlite แล้ว
 
@@ -70,3 +70,12 @@
 - Task 6 ยังไม่ปิด: production test data = ข้อ 2 ไม่อนุมัติ จึงไม่สร้างบัญชี/PO ทดสอบหรือทำ lifecycle writes; หลักฐานอัตโนมัติแยกจาก production
 - Task 7 ยังไม่ปิด: backup/restore = ข้อ 3 ไม่อนุมัติ จึงไม่ dump/restore/สร้าง project หรือเปลี่ยนแผน; สิทธิ์ผู้ดูแล Dashboard ยังไม่ได้ตรวจ
 - แนวทาง migration ครั้งถัดไป: สร้างไฟล์ด้วย `supabase migration new`, ทดสอบในฐานแยก, review SQL/สิทธิ์, ตรวจ remote migration list และ `db push --dry-run` ก่อน apply เมื่อได้รับอนุมัติ; หลัง apply ตรวจ Advisor และ metadata ซ้ำ ถ้าต้องแก้ให้ใช้ forward migration ที่รักษาข้อมูล ห้ามทดลองลบบน production
+
+
+### ข้อ 1 เสร็จแล้ว — 2 ตุลาคม 2026
+
+- ผู้ใช้อนุมัติให้ใช้ browser แทน connector และยืนยันตัวตนแล้ว; Dashboard แสดงบัญชี Perthyw, องค์กร Perthyw GRAND และ project rhkilsnuqdkzwlncjvkj
+- ปิด “Allow new users to sign up” แล้ว Save changes สำเร็จ; UI แสดง switch ปิด
+- ตรวจ GET /auth/v1/settings ด้วย publishable key ของ PO หลังบันทึก: HTTP 200, disable_signup=true, anonymous_users=false, email=true
+- ข้อ 1 (ปิด public signup + deploy manage-user owner protection version 5) เสร็จแล้ว; ข้อ 2 production test data และข้อ 3 backup/restore ยังคงไม่อนุมัติ
+- ค่า disable_signup=false ที่บันทึกก่อนหน้านี้เป็นผลก่อนแก้ ไม่ใช่สถานะปัจจุบัน ไม่มีการสร้างบัญชีหรือ PO ทดสอบเพื่อยืนยัน signup
