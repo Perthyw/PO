@@ -11,3 +11,7 @@ For VAT items, the entered price is the final VAT-inclusive price. VAT is `gross
 Monthly reports count PO value only after approval (`approved`, `received`, `closed`) and export summary and item worksheets to `.xlsx`. The item sheet includes PO status and department/branch. Pending and rejected counts remain visible but their value is excluded from the ordered total.
 
 Owner credentials and office credentials are required. The owner creates, edits, resets, or disables office accounts and grants the combined-report capability to the designated primary purchasing account. Office login uses a unique account name such as `purchase.fai01`, while the visible staff name may be Thai such as `น้องฝ้าย`. Office passwords may use letters or numbers and contain at least six characters. Public signup, attachments, payments, inventory, partial receipt, and purchase dispatch are outside scope.
+
+## Owner self-account settings
+
+The owner may change their own login alias and password after verifying their current password. The original Auth email, UUID and owner role remain unchanged. Login aliases are lowercase, unique and case-insensitive at entry. Alias signin authenticates the password server-side without publishing an alias-to-email resolver. Password updates require at least eight characters and confirmation; successful password change returns the user to login. Office users cannot change owner credentials through this endpoint.

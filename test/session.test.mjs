@@ -13,7 +13,7 @@ test('Supabase session persists, restores with profile, refreshes, and clears di
   config.publishableKey='test-public-key';
   let profileActive=true,profileNetworkError=false,refreshCount=0,profileReads=0;
   globalThis.fetch=async(url,init)=>{
-    if(url.includes('grant_type=password'))return Response.json({access_token:'initial-access',refresh_token:'initial-refresh',expires_in:3600,user:{id:'office'}});
+    if(url.includes('grant_type=password')||(url.includes('/owner-account')&&JSON.parse(init.body).action==='login'))return Response.json({access_token:'initial-access',refresh_token:'initial-refresh',expires_in:3600,user:{id:'office'}});
     if(url.includes('grant_type=refresh_token')){refreshCount++;return Response.json({access_token:'renewed-access',refresh_token:'renewed-refresh',expires_in:3600,user:{id:'office'}});}
     if(url.includes('/profiles?')){profileReads++;if(profileNetworkError)throw Error('offline');assert.equal(init.headers.Authorization,`Bearer ${refreshCount?'renewed-access':'initial-access'}`);return Response.json(profileActive?[{id:'office',role:'office',display_name:'ออฟฟิศ'}]:[]);}
     if(url.includes('/logout'))return Response.json({});

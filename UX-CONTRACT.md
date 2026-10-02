@@ -45,3 +45,7 @@ At small laptop widths (1100px and below), dashboard metric cards reflow to two 
 
 test/database.test.mjs tests real PostgreSQL behavior in isolated PGlite with a mocked Supabase auth.uid/session boundary. This is not a real Supabase integration test. test/domain.test.mjs tests money and state rules. VERIFICATION.md records exact checks and browser coverage; missing external integration remains explicit.
 
+
+## Owner account settings
+
+Source: explicit user approval 2026-10-02. Reuse field(), passwordControl(), errorField(), withPending(), notify() and openModal() on the owner-only บัญชีของฉัน route. Separate alias and password forms require current-password proof; preserve values on failure, clear committed passwords on success, and never persist password drafts. Guard unsaved navigation. Alias update stays on the settings page; password update clears the local session and returns to signin with success feedback. Public alias signin returns tokens only after Auth password verification, never an unauthenticated email mapping.

@@ -1,1 +1,5 @@
 project_id = "po-the-grands"
+
+[functions.owner-account]
+# Public alias login; signed mutations verify bearer and active owner in the handler.
+verify_jwt = false

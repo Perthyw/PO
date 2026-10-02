@@ -12,7 +12,7 @@ test('REST adapter: login, paging, create payload, report, failed network and ex
     calls.push({url,init});
     if(fail)throw Error('offline');
     if(expired)return Response.json({message:'expired'},{status:401});
-    if(url.includes('/token?'))return Response.json({access_token:'test-access',refresh_token:'test-refresh',expires_in:3600,user:{id:'office'}});
+    if(url.includes('/token?')||(url.includes('/owner-account')&&JSON.parse(init.body).action==='login'))return Response.json({access_token:'test-access',refresh_token:'test-refresh',expires_in:3600,user:{id:'office'}});
     if(url.includes('/profiles?'))return Response.json([{id:'office',role:'office',display_name:'ออฟฟิศ'}]);
     if(url.includes('/purchase_orders?'))return Response.json([],{headers:{'content-range':'10-19/24'}});
     if(url.includes('/departments?'))return Response.json([{name:'อาหาร'},{name:'ออฟฟิศ'}]);
@@ -23,7 +23,7 @@ test('REST adapter: login, paging, create payload, report, failed network and ex
   try{
     assert.equal((await api.login('office@example.invalid','not-a-real-password')).role,'office');
     await api.login('purchase.fai01','123456');
-    assert.equal(JSON.parse(calls.findLast(call=>call.url.includes('/token?')).init.body).email,'purchase.fai01@po.thegrands.local');
+    assert.deepEqual(JSON.parse(calls.findLast(call=>call.url.includes('/owner-account')).init.body),{action:'login',username:'purchase.fai01',password:'123456'});
     await api.saveOffice({username:'purchase.fai02',display_name:'น้องมุก',password:'654321'});
     const savedAccount=JSON.parse(calls.at(-1).init.body);
     assert.equal(savedAccount.username,'purchase.fai02');
