@@ -1,0 +1,14 @@
+import {createDecipheriv,createHash} from 'node:crypto';
+import {readFile,writeFile} from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import {resolve} from 'node:path';
+const [encrypted,keyFile,output]=process.argv.slice(2);
+if(!encrypted||!keyFile||!output||new Set([encrypted,keyFile,output].map(p=>resolve(p))).size!==3)throw Error('Supply distinct resolved encrypted file, separate recovery-key file and a NEW private output path');
+const payload=JSON.parse(await readFile(encrypted,'utf8')),recovery=JSON.parse(await readFile(keyFile,'utf8'));
+assert.equal(payload.format,'PO-auth-backup-v1');assert.equal(recovery.format,'PO-auth-recovery-key-v1');
+const decipher=createDecipheriv('aes-256-gcm',Buffer.from(recovery.key_base64,'base64'),Buffer.from(payload.iv,'base64'));
+decipher.setAuthTag(Buffer.from(payload.tag,'base64'));
+const plain=Buffer.concat([decipher.update(Buffer.from(payload.ciphertext,'base64')),decipher.final()]);
+assert.equal(createHash('sha256').update(plain).digest('hex'),payload.plaintext_sha256);
+await writeFile(output,plain,{mode:0o600,flag:'wx'});
+console.log(JSON.stringify({decrypt_verified:true,bytes:plain.length}));

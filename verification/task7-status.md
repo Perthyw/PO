@@ -1,14 +1,15 @@
-# Task 7 status clarification
+# Task 7 — completed for PO application and permanent email/password account recovery
 
-Status: PARTIAL — application data recovery verified; full account recovery pending.
+- [x] Application and permanent Auth users/identities captured together and encrypted with a separate recovery key.
+- [x] Application rows, account credential fields and identities restored and compared with the snapshot in an isolated test project.
+- [x] Target-only synthetic QA password hash backed up, changed, restored, and verified through real Auth sign-in and logout.
+- [x] Imported real accounts and QA remain banned in the test project; no sessions remain.
+- [x] Storage inventory has no files to back up at this capture.
+- [x] Access-control/security checks and forward migration/rollback procedure verified or documented.
+- [x] Weekly backup automation updated to include the reviewed account snapshot and encryption/recovery steps.
 
-Completed:
-- [x] Application backup schedule configured.
-- [x] Purchase-order application data restored and verified in an isolated project.
-- [x] Database access controls and security findings reviewed; unnecessary internal function execution permissions revoked.
-- [x] Migration and rollback procedure documented.
+Actual users' passwords were not tried. Their restored credential fields were checked for equality with the backup. The QA login test verifies the recovery mechanism without enabling real test-project accounts.
 
-Pending:
-- [ ] Back up and verify recovery of actual Auth accounts and identities. The application recovery used banned UUID placeholders and did not restore sign-in credentials.
+Scope excludes live sessions, refresh/recovery/confirmation tokens, signing secrets and full platform cloning. The source account flags are preserved in the encrypted backup; real recovery activation needs review before lifting the test-only ban overrides. Dashboard MFA enrollment remains an owner-operated follow-up.
 
-The checked items in the main checklist refer to their stated application-only scope. They do not mean full project disaster recovery has been verified. Do not include credentials, password hashes, session tokens, or business backup contents in this repository.
+See task7-account-recovery.md and the scripts directory. Never commit backup data, credentials or recovery keys.

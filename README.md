@@ -88,25 +88,30 @@
 - [x] ตรวจคำขอที่ไม่มี session ถูกปฏิเสธด้วย 401
 - [x] เจ้าของยืนยันเปิดหน้า “ผู้ใช้งาน” ด้วย owner session บนเว็บ Vercel ได้ (2026-10-01)
 
-### Task 6 — ทดสอบ production flow
+### Task 6 — ทดสอบ production flow — ปิดตามขอบเขตที่ตกลง
 
-- [x] ทดสอบอัตโนมัติ 35/35 ด้วย PGlite, mock REST และ manage-user regression tests (2026-10-02)
-- [x] ทดสอบเปิด PO หลายรายการและแผนกต่างกัน (production QA 2026-10-02)
-- [x] ทดสอบ VAT/NON VAT, อนุมัติ, ปฏิเสธ, รับสินค้า, ปิดใบ และ invoice gate (production QA)
-- [x] ทดสอบบัญชีหลัก, บัญชีทั่วไป, รายงาน, Excel, notification และ retry (Auth JWT จริง; export.js สร้าง Excel และอ่านกลับ)
-- [ ] ตรวจ responsive, keyboard/focus, session expiry และ browser console บนเว็บจริง
+- [x] ทดสอบอัตโนมัติ 35/35 ด้วย PGlite, mock REST และ manage-user regression tests
+- [x] ทดสอบเปิด PO หลายรายการและหลายแผนกบนฐานจริง
+- [x] ทดสอบ VAT/NON VAT, อนุมัติ, ปฏิเสธ, รับสินค้า, ปิดใบ และ invoice gate
+- [x] ทดสอบบัญชีหลัก/ทั่วไป, รายงาน, Excel, notification, retry และคำสั่งพร้อมกัน
+- [x] ผู้ใช้ยืนยันวันที่ 2 ตุลาคม 2026 ว่าทดสอบหน้าเว็บจริงครบแล้ว และ owner sign-in ใช้งานได้หลังแก้ timeout
 
-สถานะ 2026-10-02: deploy `manage-user` version 5 พร้อม owner protection แล้ว; function source อ่านกลับตรงกัน ข้อ 1 ครบแล้ว: ปิด public signup ผ่าน Dashboard และตรวจ Auth settings จริงได้ `disable_signup=true` (2026-10-02). ผู้ใช้อนุมัติข้อ 2–3 แล้ว; production QA business flow ผ่าน สร้าง PO ทดสอบ 000005–000008 ที่มีป้าย QA และปิด/ban บัญชี QA ทั้ง 5 บัญชีแล้ว ยังเหลือ browser flow ทุกบทบาทและ JWT expiry ตามเวลาจริง
+ข้อยกเว้นที่ตกลง: ยังไม่รอ JWT หมดอายุตามเวลาจริง ใช้ผลทดสอบ refresh/session ที่มีแล้วและเลื่อนการรอเวลาจริงเป็นรายการติดตามภายหลัง ไม่อ้างว่าการทดสอบข้อนี้ผ่านแล้ว
 
-### Task 7 — Backup และ security
+### Task 7 — Backup และ security — ปิดในขอบเขตข้อมูล PO และบัญชี email/password
 
-- [x] ตรวจผู้ดูแลและสิทธิ์เข้า Supabase Dashboard: สมาชิก 1 คน บัญชีผู้ใช้เป็น Owner; MFA ปิดอยู่ (2026-10-02)
-- [x] ตั้งสำรอง application ทุกวันศุกร์เช้าและกู้ข้อมูล 7 ตารางใน Supabase project แยกผ่าน (ไม่รวม Auth/Storage; PO-BACKUP.md)
-- [x] ตรวจ Security Advisor, RLS และ RPC grants แบบ read-only (2026-10-02); ผลและประเด็นค้างอยู่ใน VERIFICATION.md
-- [x] revoke EXECUTE ของ rls_auto_enable จาก PUBLIC/anon/authenticated; ตรวจ Advisor และ secret patterns ใน Git/production assets แล้ว
-- [x] วางขั้นตอน migration/rollback โดยไม่ลบข้อมูล production ทดลอง (VERIFICATION.md/PO-BACKUP.md)
+- [x] ตรวจผู้ดูแลและสิทธิ์เข้า Supabase Dashboard
+- [x] ตั้งสำรองรายสัปดาห์และตรวจความจุรายเดือน โดยไม่ลบข้อมูลอัตโนมัติ
+- [x] สำรองข้อมูล PO และบัญชี Auth/identities ที่จำเป็นจาก snapshot เดียวกันแบบเข้ารหัส เก็บกุญแจแยกเป็นไฟล์ส่วนตัว
+- [x] กู้ข้อมูลและบัญชีลง project ทดสอบแยก และตรวจว่าตรงกับสำเนา
+- [x] QA เฉพาะ project ทดสอบผ่านการสำรอง → เปลี่ยน hash → กู้ hash → เข้าสู่ระบบด้วยรหัสเดิม → logout → ปิดบัญชีกลับ
+- [x] ตรวจ Storage แล้วไม่มีไฟล์ให้สำรองในรอบนี้
+- [x] ตรวจ Security Advisor, RLS, RPC grants และ secret exposure; revoke สิทธิ์ function ภายในที่ไม่จำเป็นแล้ว
+- [x] วางขั้นตอน migration/rollback โดยไม่ทดลองกู้ทับหรือลบข้อมูล production
 
-ผู้ใช้อนุมัติข้อ 3 แล้ว; สำรอง application 7 ตารางและทดสอบ isolated restore ผ่าน; ตั้งสำรองทุกวันศุกร์เช้าและตรวจความจุวันที่ 1 ทุกเดือน ไม่มีการลบข้อมูลอัตโนมัติ ดู PO-BACKUP.md สำหรับขอบเขตและหลักฐาน Supabase project แยก ยังไม่อ้าง full Auth/Storage disaster recovery
+ผล login proof เป็นบัญชี QA ของ project ทดสอบ ส่วนข้อมูลรับรองของบัญชีจริงตรวจความตรงกับสำเนา ไม่ทดลองรหัสผ่านเจ้าของจริง และคงบัญชีจริงทั้งหมดใน project ทดสอบถูก ban ดู [สถานะ Task 7](verification/task7-status.md) และ [แนวทางกู้บัญชี](verification/task7-account-recovery.md)
+
+ไม่เก็บหรือกู้ live session/refresh tokens และ signing secrets ผู้ใช้ต้องเข้าสู่ระบบใหม่หลังการกู้จริง นี่ไม่ใช่การโคลนทุกบริการของ Supabase เรื่อง MFA ของ Dashboard เป็นรายการติดตามที่เจ้าของต้องตั้งปัจจัยยืนยันตัวตนเอง ไม่เปลี่ยนแผน Free
 
 สถานะ `[x]` คือทำหรือทดสอบตามหลักฐานที่ระบุแล้ว ส่วน `[ ]` ต้องทำบน Supabase/เว็บจริงก่อนเปิดใช้งาน production รายละเอียด checklist แบบเต็มอยู่ในหัวข้อ [รายละเอียดการทำงานของ 7 Task](#รายละเอียดการทำงานของ-7-task)
 
@@ -626,31 +631,30 @@ export const config = {
    - [x] เจ้าของยืนยันเปิดเมนู “ผู้ใช้งาน” บนเว็บ Vercel ด้วย session ของตนได้ (2026-10-01)
    - **ปิดงานเมื่อ:** เจ้าของจัดการบัญชีจากเว็บจริงได้ โดย function ยังคงตรวจ token และบทบาทฝั่ง server
 
-6. **ทดสอบ flow จริงทุกบทบาท — ยังไม่ผ่านการทดสอบบน Supabase จริง**
+6. **ทดสอบ flow จริงทุกบทบาท — ปิดตามขอบเขตที่ตกลง**
 
-   - [ ] ทดสอบออฟฟิศทั่วไปเปิดใบหลายสินค้า เลือกแผนกต่างกัน วันที่ จำนวน หน่วย VAT และ NON VAT; ตรวจค่า 3,000 บาทเป็นฐาน 2,803.74 บาท + VAT 196.26 บาททั้งหน้าเว็บและฐาน
-   - [ ] ทดสอบเจ้าของอนุมัติ/ไม่อนุมัติพร้อมเหตุผล ออฟฟิศรับสินค้าครบ และเจ้าของปิดใบหลังยืนยันใบกำกับภาษี ทั้ง VAT และ NON VAT
-   - [ ] ทดสอบบัญชีหลักเห็นทุกใบ รับสินค้าแทน จัดการแผนก ดูรายงานรวม และ Export `.xlsx`; บัญชีทั่วไปเห็นเฉพาะใบตน
-   - [ ] ตรวจการแจ้งเตือน ประวัติผู้ทำ/เวลา การ retry ด้วย request ID เดิม และสองหน้าจอทำรายการบนใบเดียวกัน
-   - [ ] ตรวจ error, session หมดอายุ, หน้าแคบ, keyboard/focus, การเปิดไฟล์ Excel และ console/network log
-   - **ปิดงานเมื่อ:** บันทึกผลและหลักฐานใน [VERIFICATION.md](VERIFICATION.md) โดยแยกผล production ออกจาก demo/PGlite
+   - [x] Production business RPC, VAT/NON VAT, lifecycle, invoice gate, role/RLS, report, Excel, notifications, retry และ concurrency ผ่าน
+   - [x] ผู้ใช้ยืนยันหน้าเว็บจริงทุกบทบาทและ owner login ผ่าน
+   - [x] ผล refresh/session อัตโนมัติผ่าน; การรอ JWT หมดอายุตามเวลาจริงเลื่อนเป็นรายการติดตาม ไม่อ้างว่าตรวจแล้ว
+   - หลักฐานอัตโนมัติและ production แยกกันในเอกสาร verification
 
-7. **ตั้ง backup และตรวจความปลอดภัย — ยังไม่ดำเนินการ**
+7. **ตั้ง backup และตรวจความปลอดภัย — ปิดสำหรับข้อมูล PO และบัญชีถาวร**
 
-   - [ ] กำหนดผู้เข้าถึง Supabase Dashboard สิทธิ์ที่จำเป็น และผู้รับผิดชอบการสำรองข้อมูล
-   - [ ] กำหนดรอบและที่เก็บ backup; ถ้า project ยังใช้ Free plan จะไม่มี automatic daily backups ที่ดาวน์โหลดได้ ต้องวาง manual `supabase db dump` ไปเก็บนอก GitHub หรือพิจารณาแผนที่มี backup
-   - [ ] ทดลอง restore ลง project ทดสอบแยกก่อนใช้งานจริง
-   - [ ] ตรวจ Supabase Security Advisor, RLS ทุกตาราง, สิทธิ์ `EXECUTE` ของ RPC และการไม่เผย Secret/Service Role key
-   - [ ] วางวิธีเก็บ migration เวอร์ชันถัดไป ตรวจ `--dry-run` และ rollback/แก้ไขแบบ forward migration โดยไม่ทดลองลบข้อมูลบน production
-   - **ปิดงานเมื่อ:** กู้ข้อมูลจาก backup ที่ทดสอบได้และผลตรวจสิทธิ์/ความปลอดภัยไม่มีประเด็นค้างที่กระทบการเปิดใช้จริง
+   - [x] ตรวจผู้ดูแล สิทธิ์ Dashboard, RLS, RPC grants และ secret exposure
+   - [x] ตั้งสำรองข้อมูล PO พร้อมบัญชี Auth แบบเข้ารหัสทุกวันศุกร์เช้า และตรวจความจุรายเดือน
+   - [x] กู้ snapshot ลง project แยกและเปรียบเทียบข้อมูลกับสำเนา
+   - [x] ทดสอบคืน password hash และ login ด้วย QA เฉพาะ project ทดสอบ; logout/ban กลับครบ
+   - [x] ตรวจ Storage ไม่มีไฟล์ในรอบนี้; หากมีไฟล์ภายหลังต้องสำรอง bytes เพิ่ม
+   - [x] วาง forward migration/rollback โดยไม่ทดลองลบหรือกู้ทับ production
+   - ดูขอบเขตและข้อจำกัดใน [สถานะ Task 7](verification/task7-status.md) และ [แนวทางกู้ข้อมูล](verification/task7-account-recovery.md)
 
-ขั้นตอนเชื่อมและเผยแพร่เพิ่มเติมอยู่ใน [SUPABASE-SETUP.md](SUPABASE-SETUP.md) และ [DEPLOY.md](DEPLOY.md) ขณะนี้ Task 1–5 ผ่านตามหลักฐานด้านบน; Task 6 เหลือ business flow บนข้อมูลจริง/สภาพแวดล้อมทดสอบ และ Task 7 เหลือยืนยัน backup/security บน Dashboard
+ขั้นตอนเชื่อมและเผยแพร่อยู่ใน [SUPABASE-SETUP.md](SUPABASE-SETUP.md) และ [DEPLOY.md](DEPLOY.md) Task 6 ปิดโดยยอมรับการเลื่อน JWT expiry ตามเวลาจริง; Task 7 ปิดในขอบเขต application และบัญชี email/password ไม่รวม live sessions หรือการโคลนทุกบริการ
 
 ## การทดสอบ
 
 สถานะล่าสุดในซอร์สชุดนี้:
 
-- `npm test` ผ่าน 21 tests
+- `npm test` ผ่าน 35 tests
 - `npm run check` ผ่าน
 - Strict UI audit: 0 findings
 - Database tests ใช้ PGlite ฐานใหม่แยกจากข้อมูลจริง
@@ -672,16 +676,11 @@ export const config = {
 
 ### Supabase
 
-ก่อนใช้งานจริงควรกำหนด
+สำรองข้อมูล PO และบัญชี email/password แบบเข้ารหัสทุกวันศุกร์เช้า เก็บกุญแจแยกเป็นไฟล์ส่วนตัว ทดสอบกู้ลง project แยกและตรวจความตรงของข้อมูลแล้ว รายละเอียดอยู่ใน [PO-BACKUP.md](PO-BACKUP.md)
 
-- รอบ backup ของฐานข้อมูล
-- project ที่ใช้ Supabase Free ไม่มี automatic daily backups ที่ดาวน์โหลดได้; จึงต้องทำ logical dump ด้วย Supabase CLI และเก็บไฟล์ในที่เก็บสำรองที่จำกัดสิทธิ์ หรือเลือกแผนที่มี daily backups
-- ผู้มีสิทธิ์เข้า Supabase Dashboard
-- วิธี export ข้อมูลก่อน migration
-- วิธี restore ไป project ทดสอบก่อน production
-- การเก็บ migration SQL ทุกเวอร์ชันใน source control
+Free plan ไม่มี automatic daily backups ที่ดาวน์โหลดได้ วิธีที่ตั้งไว้ใช้ read-only snapshot ผ่านการเชื่อมต่อที่อนุญาต ไม่ต้องเปลี่ยนแผนและไม่ลบข้อมูลอัตโนมัติ หากใช้ CLI logical dump เพิ่มต้องมีช่องทางเชื่อมต่อฐานข้อมูลที่ปลอดภัย
 
-ไม่ควรทดสอบการลบหรือ migration กับฐาน production โดยตรง
+ไม่สำรอง live sessions/refresh tokens หรือ signing secrets ผู้ใช้ต้องเข้าสู่ระบบใหม่หลังการกู้จริง Storage ปัจจุบันไม่มีไฟล์ หากเพิ่มไฟล์ภายหลังต้องสำรอง bytes แยก และห้ามทดลองลบหรือกู้ทับ production
 
 ## โครงสร้างไฟล์
 
