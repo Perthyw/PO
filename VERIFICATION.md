@@ -79,3 +79,26 @@
 - ตรวจ GET /auth/v1/settings ด้วย publishable key ของ PO หลังบันทึก: HTTP 200, disable_signup=true, anonymous_users=false, email=true
 - ข้อ 1 (ปิด public signup + deploy manage-user owner protection version 5) เสร็จแล้ว; ข้อ 2 production test data และข้อ 3 backup/restore ยังคงไม่อนุมัติ
 - ค่า disable_signup=false ที่บันทึกก่อนหน้านี้เป็นผลก่อนแก้ ไม่ใช่สถานะปัจจุบัน ไม่มีการสร้างบัญชีหรือ PO ทดสอบเพื่อยืนยัน signup
+
+
+### ผลหลังอนุมัติข้อ 2–3 — 2 ตุลาคม 2026
+
+- ใช้ clean worktree จาก main b78a9379d4139706cfb7e0c425aadb8f3b6437cf; ไม่แตะ HR
+- Production QA ใช้ Supabase Auth sign-in จริง owner/general/primary และ RPC จริง: VAT3000 (ฐาน2803.74 VAT196.26) + NONVAT3×50 หลายแผนก, lifecycle, reject reason, invoice gate, primary report, role/RLS, concurrent create/action retries, stale version, event/notification deduplication ผ่าน
+- สร้าง PO-2026-000005–000008 ชื่อสินค้า/หมายเหตุมี QA Task6; ไม่มีการลบ PO หรือทดลองคืน production บัญชี QA 3 บัญชีปิด profile และ Auth ban; JWT เดิมอ่าน PO ได้รายการว่าง และ sign-in หลัง ban ถูกปฏิเสธจริง
+- Harness รอบแรก 22/23 checks ผ่าน; owner protection assertion คาดข้อความผิด ไม่ใช่ระบบเปิดสิทธิ์ ทดสอบแยกซ้ำ 6/6 ผ่าน: owner by UUID/login ได้403 ข้อความตาม source, office list403, owner role/email/passwordเดิมไม่เปลี่ยน บัญชี QA เพิ่ม2บัญชีปิด/banแล้ว
+- Endpoint QA ชั่วคราวถูกแทนด้วย function ไม่มี service access version4; POST ตรวจจริง410 ไม่คง QA privileged endpoint ไว้
+- Excel จาก report production จริงใช้ dist/export.js และ bundled ExcelJS; เปิดไฟล์กลับตรวจ2ชีต/7รายการสินค้า ยอด/status/dept/unit/qty/VATตรงกับ report ผลผ่าน ไม่ใช่การคลิก download ใน browserจริง
+- Migration20261002104506 revoke EXECUTE public.rls_auto_enable() จาก PUBLIC/anon/authenticated applyแล้ว; ตรวจ anon=false authenticated=false service_role=true, ensure_rls eventtriggerยังเปิด Advisorไม่เหลือ warningตัวนี้
+- Remaining Advisor: po_commands RLS no-policy INFO เป็น intentional denial;4business SECURITY DEFINER RPC authenticated executeมี role guards/search_pathว่างตามflow; leaked-password protectionต้อง Pro+ ไม่เปลี่ยนแผน
+- Git reachable34commits/128unique blobs และ production8assets HTTP200: ไม่พบ patterns sb_secret_, JWT service_role, GitHub PAT, private-key header ไม่ใช่การรับรอง secrets arbitraryทุกชนิด
+- Dashboard org Perthyw GRAND Team:สมาชิก1คน current user Owner; MFA Disabled ยังไม่เปิดเพราะต้องผู้ใช้ตั้งปัจจัยยืนยันตัวตนเอง
+- Production browserหน้าเข้าสู่ระบบ:Tabfocusเข้าสู่ช่องชื่อผู้ใช้ ไม่มีแนวนอนล้นที่1363px; consoleที่อ่านพบเฉพาะ chrome-extension metadata error ไม่มี errorจากPOในช่วงตรวจหน้าlogin ไม่ครอบคลุม flowหลังlogin
+- สำรอง snapshot read-only7ตาราง consistentMVCC พร้อมsequence/schema metadata; isolated local restoreตรวจ rowSHA256/FK/columns/RLSตรง ไม่รวมAuthcredentials/sessions/Storage/settings
+- ตั้งautomationสำรองapplicationทุกวันศุกร์เช้า Bangkok เริ่ม9ตุลาคม; ตั้งตรวจcapacityวันที่1ทุกเดือน warn350MB ไม่ลบข้อมูลอัตโนมัติ
+- Task6ยังมี browserทุกบทบาท/keyboardmodal/fullresponsive/actualtimedJWTexpiryที่ยังไม่ตรวจครบ; Task7ขอบเขตfullAuth/Storagerecoveryยังไม่ตรวจ ห้ามใช้หลักฐานapplicationrestoreแทนfullbackup
+- Forward migration:สร้างsupabase migration new, ทดสอบACLในฐานแยก, review/apply_migration, ตรวจremoteversion/Advisor/ACLหลังapply; rollbackใช้forwardmigrationที่รักษาข้อมูล หรือrestoreลงฐานแยกก่อน ห้ามDROP/truncateproductionทดลอง
+
+- Supabase restore จริงใน project PO-restore-test-20261002 (tctartzpqrbxhkcgwmmu):7ตาราง hash/countsตรง source,10FK/policies/indexes/sequenceตรง;owner/primary8PO,disabled0;AuthUUIDplaceholders12ไม่มีemail/passwordและbanถาวร signuptargetปิด ไม่มีproductionrestore
+- ผลสำเนาสุดท้าย:profiles12/departments14/POs8/items9/events24/notifications30/commands24 sequence8; fileSHA256 fae192a174e87e8fcde53421f9d829906aa0d8f79f2d3345f3848cef4401abc5
+- BrowserAuth PO requestยังไม่ยืนยันsign-in แล้วผู้ใช้declinedการร้องขอถัดมา;หยุดการเข้าสู่ระบบและไม่กล่าวว่าทดสอบbrowserหลังloginแล้ว

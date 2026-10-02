@@ -91,22 +91,22 @@
 ### Task 6 — ทดสอบ production flow
 
 - [x] ทดสอบอัตโนมัติ 35/35 ด้วย PGlite, mock REST และ manage-user regression tests (2026-10-02)
-- [ ] ทดสอบเปิด PO หลายรายการและแผนกต่างกัน
-- [ ] ทดสอบ VAT/NON VAT, อนุมัติ, ปฏิเสธ, รับสินค้า, ปิดใบ และ invoice gate
-- [ ] ทดสอบบัญชีหลัก, บัญชีทั่วไป, รายงาน, Excel, notification และ retry
+- [x] ทดสอบเปิด PO หลายรายการและแผนกต่างกัน (production QA 2026-10-02)
+- [x] ทดสอบ VAT/NON VAT, อนุมัติ, ปฏิเสธ, รับสินค้า, ปิดใบ และ invoice gate (production QA)
+- [x] ทดสอบบัญชีหลัก, บัญชีทั่วไป, รายงาน, Excel, notification และ retry (Auth JWT จริง; export.js สร้าง Excel และอ่านกลับ)
 - [ ] ตรวจ responsive, keyboard/focus, session expiry และ browser console บนเว็บจริง
 
-สถานะ 2026-10-02: deploy `manage-user` version 5 พร้อม owner protection แล้ว; function source อ่านกลับตรงกัน ข้อ 1 ครบแล้ว: ปิด public signup ผ่าน Dashboard และตรวจ Auth settings จริงได้ `disable_signup=true` (2026-10-02). Task 6 production test data (ข้อ 2) ยังไม่อนุมัติ จึงไม่สร้างข้อมูลทดสอบ
+สถานะ 2026-10-02: deploy `manage-user` version 5 พร้อม owner protection แล้ว; function source อ่านกลับตรงกัน ข้อ 1 ครบแล้ว: ปิด public signup ผ่าน Dashboard และตรวจ Auth settings จริงได้ `disable_signup=true` (2026-10-02). ผู้ใช้อนุมัติข้อ 2–3 แล้ว; production QA business flow ผ่าน สร้าง PO ทดสอบ 000005–000008 ที่มีป้าย QA และปิด/ban บัญชี QA ทั้ง 5 บัญชีแล้ว ยังเหลือ browser flow ทุกบทบาทและ JWT expiry ตามเวลาจริง
 
 ### Task 7 — Backup และ security
 
-- [ ] กำหนดผู้ดูแลและสิทธิ์เข้า Supabase Dashboard
-- [ ] ตั้งรอบ backup และทดสอบ restore ใน project แยก
+- [x] ตรวจผู้ดูแลและสิทธิ์เข้า Supabase Dashboard: สมาชิก 1 คน บัญชีผู้ใช้เป็น Owner; MFA ปิดอยู่ (2026-10-02)
+- [x] ตั้งสำรอง application ทุกวันศุกร์เช้าและกู้ข้อมูล 7 ตารางใน Supabase project แยกผ่าน (ไม่รวม Auth/Storage; PO-BACKUP.md)
 - [x] ตรวจ Security Advisor, RLS และ RPC grants แบบ read-only (2026-10-02); ผลและประเด็นค้างอยู่ใน VERIFICATION.md
-- [ ] แก้ประเด็น security ค้างและตรวจ secret exposure/สิทธิ์ Dashboard ให้ครบ
-- [ ] วางขั้นตอน migration/rollback โดยไม่ลบข้อมูล production ทดลอง
+- [x] revoke EXECUTE ของ rls_auto_enable จาก PUBLIC/anon/authenticated; ตรวจ Advisor และ secret patterns ใน Git/production assets แล้ว
+- [x] วางขั้นตอน migration/rollback โดยไม่ลบข้อมูล production ทดลอง (VERIFICATION.md/PO-BACKUP.md)
 
-Task 7 backup/restore (ข้อ 3) ยังไม่อนุมัติ; ไม่มีการ dump/restore หรือเปลี่ยนแผน
+ผู้ใช้อนุมัติข้อ 3 แล้ว; สำรอง application 7 ตารางและทดสอบ isolated restore ผ่าน; ตั้งสำรองทุกวันศุกร์เช้าและตรวจความจุวันที่ 1 ทุกเดือน ไม่มีการลบข้อมูลอัตโนมัติ ดู PO-BACKUP.md สำหรับขอบเขตและหลักฐาน Supabase project แยก ยังไม่อ้าง full Auth/Storage disaster recovery
 
 สถานะ `[x]` คือทำหรือทดสอบตามหลักฐานที่ระบุแล้ว ส่วน `[ ]` ต้องทำบน Supabase/เว็บจริงก่อนเปิดใช้งาน production รายละเอียด checklist แบบเต็มอยู่ในหัวข้อ [รายละเอียดการทำงานของ 7 Task](#รายละเอียดการทำงานของ-7-task)
 

@@ -1,0 +1,14 @@
+-- READ ONLY: PO project rhkilsnuqdkzwlncjvkj only.
+-- Application-only snapshot: no credentials/Auth/session/Storage recovery.
+-- One MVCC-consistent SELECT. Sequences are nontransactional; capture during quiet period.
+select jsonb_build_object('project_ref','rhkilsnuqdkzwlncjvkj','captured_at',now(),'snapshot',txid_current_snapshot()::text,'postgres_version',version(),'scope','PO application public-schema snapshot; excludes Auth identities/passwords/sessions, storage objects, secrets and dashboard settings','tables',jsonb_build_object('departments',(select coalesce(jsonb_agg(to_jsonb(t) order by to_jsonb(t)::text),'[]'::jsonb) from public.departments t),'profiles',(select coalesce(jsonb_agg(to_jsonb(t) order by to_jsonb(t)::text),'[]'::jsonb) from public.profiles t),'purchase_orders',(select coalesce(jsonb_agg(to_jsonb(t) order by to_jsonb(t)::text),'[]'::jsonb) from public.purchase_orders t),'po_items',(select coalesce(jsonb_agg(to_jsonb(t) order by to_jsonb(t)::text),'[]'::jsonb) from public.po_items t),'po_events',(select coalesce(jsonb_agg(to_jsonb(t) order by to_jsonb(t)::text),'[]'::jsonb) from public.po_events t),'notifications',(select coalesce(jsonb_agg(to_jsonb(t) order by to_jsonb(t)::text),'[]'::jsonb) from public.notifications t),'po_commands',(select coalesce(jsonb_agg(to_jsonb(t) order by to_jsonb(t)::text),'[]'::jsonb) from public.po_commands t)),
+'sequence_state',(select jsonb_build_object('name','po_number_seq','last_value',last_value,'is_called',is_called) from public.po_number_seq),
+'sequences',(select coalesce(jsonb_agg(to_jsonb(t)),'[]'::jsonb) from pg_sequences t where schemaname='public'),
+'columns',(select jsonb_agg(to_jsonb(t) order by table_name,ordinal_position) from information_schema.columns t where table_schema='public'),
+'constraints',(select jsonb_agg(jsonb_build_object('table',c.relname,'name',con.conname,'definition',pg_get_constraintdef(con.oid))) from pg_constraint con join pg_class c on con.conrelid=c.oid join pg_namespace n on c.relnamespace=n.oid where n.nspname='public'),
+'functions',(select jsonb_agg(jsonb_build_object('name',p.proname,'definition',pg_get_functiondef(p.oid))) from pg_proc p join pg_namespace n on p.pronamespace=n.oid where n.nspname='public' and p.prokind='f'),
+'policies',(select jsonb_agg(to_jsonb(t)) from pg_policies t where schemaname='public'),
+'indexes',(select jsonb_agg(to_jsonb(t)) from pg_indexes t where schemaname='public'),
+'triggers',(select jsonb_agg(jsonb_build_object('table',c.relname,'definition',pg_get_triggerdef(t.oid))) from pg_trigger t join pg_class c on t.tgrelid=c.oid join pg_namespace n on c.relnamespace=n.oid where n.nspname='public' and not t.tgisinternal),
+'grants',(select jsonb_agg(to_jsonb(t)) from information_schema.role_table_grants t where table_schema='public')
+) as backup;
