@@ -15,6 +15,7 @@ Deno.serve(async request=>{
   const {data:owner}=await admin.from('profiles').select('role').eq('id',user.id).is('deleted_at',null).maybeSingle();
   if(owner?.role!=='owner')return json({message:'เฉพาะเจ้าของเท่านั้นที่จัดการผู้ใช้งานได้'},403,origin);
   let body;try{body=await request.json();}catch{return json({message:'ข้อมูลไม่ถูกต้อง'},400,origin);}
+  if(!body||typeof body!=='object'||Array.isArray(body))return json({message:'ข้อมูลไม่ถูกต้อง'},400,origin);
   if(body.action==='list'){
     const {data,error}=await admin.from('profiles').select('id,login_email,login_name,display_name,role,can_export_report').eq('role','office').is('deleted_at',null).order('display_name');
     if(error)return json({message:'โหลดผู้ใช้งานไม่ได้'},500,origin);
@@ -23,19 +24,33 @@ Deno.serve(async request=>{
   if(body.action==='delete'){
     const id=String(body.profile_id||'');
     if(!id||id===user.id)return json({message:'ไม่สามารถลบบัญชีนี้ได้'},400,origin);
-    const {data:target}=await admin.from('profiles').select('id,role,login_email').eq('id',id).eq('role','office').is('deleted_at',null).maybeSingle();
+    const {data:target,error:targetError}=await admin.from('profiles').select('id,role,login_email').eq('id',id).eq('role','office').is('deleted_at',null).maybeSingle();
+    if(targetError)return json({message:'ตรวจบัญชีออฟฟิศไม่ได้'},500,origin);
     if(!target)return json({message:'ไม่พบบัญชีออฟฟิศที่ต้องการลบ'},404,origin);
     const {error:authError}=await admin.auth.admin.updateUserById(id,{ban_duration:'876000h'});
     if(authError)return json({message:'ปิดบัญชีเข้าสู่ระบบไม่ได้'},400,origin);
     const tombstone=`deleted-${id}@invalid.local`;
-    const {error:profileError}=await admin.from('profiles').update({login_email:tombstone,login_name:null,deleted_at:new Date().toISOString()}).eq('id',id);
+    const {error:profileError}=await admin.from('profiles').update({login_email:tombstone,login_name:null,deleted_at:new Date().toISOString()}).eq('id',id).eq('role','office').is('deleted_at',null);
     if(profileError)return json({message:'บันทึกสถานะบัญชีที่ลบไม่ได้'},500,origin);
     return json({user:{id,display_name:'',role:'office',deleted:true}},200,origin);
   }
   if(body.action!=='upsert')return json({message:'คำสั่งไม่ถูกต้อง'},400,origin);
   const loginName=String(body.username||'').trim().toLowerCase(),email=loginName+'@po.thegrands.local',displayName=String(body.display_name||loginName).trim(),password=String(body.password||''),canExportReport=body.can_export_report===true;
   if(!/^[a-z0-9._]{4,50}$/.test(loginName)||displayName.length<1||displayName.length>100)return json({message:'ชื่อผู้ใช้ใช้ตัวอังกฤษ ตัวเลข จุด หรือขีดล่าง 4–50 ตัว และระบุชื่อที่แสดง'},400,origin);
-  const {data:existing}=body.profile_id?await admin.from('profiles').select('id,login_email,login_name').eq('id',String(body.profile_id)).is('deleted_at',null).maybeSingle():await admin.from('profiles').select('id,login_email,login_name').eq('login_name',loginName).is('deleted_at',null).maybeSingle();
+  // Inspect all matching profiles, including disabled accounts, before any Auth write.
+  // A supplied ID must never silently turn an edit into account creation.
+  const hasProfileId=body.profile_id!==undefined&&body.profile_id!==null;
+  const profileId=hasProfileId?String(body.profile_id):'';
+  if(hasProfileId&&!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(profileId))return json({message:'รหัสบัญชีไม่ถูกต้อง'},400,origin);
+  const columns='id,login_email,login_name,role,deleted_at';
+  const {data:existing,error:lookupError}=hasProfileId?await admin.from('profiles').select(columns).eq('id',profileId).maybeSingle():await admin.from('profiles').select(columns).eq('login_name',loginName).maybeSingle();
+  if(lookupError)return json({message:'ตรวจบัญชีผู้ใช้ไม่ได้'},500,origin);
+  if(hasProfileId&&!existing)return json({message:'ไม่พบบัญชีออฟฟิศที่ต้องการแก้ไข'},404,origin);
+  if(existing&&(existing.id===user.id||existing.role!=='office'||existing.deleted_at))return json({message:'ไม่สามารถแก้ไขบัญชีนี้ได้'},403,origin);
+  // Renaming must not collide with an owner or another office account.
+  const {data:conflict,error:conflictError}=await admin.from('profiles').select(columns).eq('login_email',email).maybeSingle();
+  if(conflictError)return json({message:'ตรวจชื่อผู้ใช้ไม่ได้'},500,origin);
+  if(conflict&&conflict.id!==existing?.id)return json({message:'ชื่อผู้ใช้นี้ถูกใช้แล้ว'},409,origin);
   let id=existing?.id;
   if(id){
     if(password.length>0&&password.length<6)return json({message:'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'},400,origin);
@@ -49,7 +64,11 @@ Deno.serve(async request=>{
     if(error||!data.user)return json({message:error?.message||'สร้างบัญชีไม่ได้'},400,origin);
     id=data.user.id;
   }
-  const {error:profileError}=await admin.from('profiles').upsert({id,login_email:email,login_name:loginName,display_name:displayName,role:'office',can_export_report:canExportReport,deleted_at:null},{onConflict:'id'});
-  if(profileError)return json({message:'บันทึกสิทธิ์ผู้ใช้ไม่ได้'},500,origin);
+  const profile={login_email:email,login_name:loginName,display_name:displayName,can_export_report:canExportReport};
+  // Existing accounts keep their role; never use upsert to demote an owner or revive a tombstone.
+  const {data:saved,error:profileError}=existing
+    ?await admin.from('profiles').update(profile).eq('id',id).eq('role','office').is('deleted_at',null).select('id').maybeSingle()
+    :await admin.from('profiles').insert({id,...profile,role:'office',deleted_at:null}).select('id').single();
+  if(profileError||!saved)return json({message:'บันทึกสิทธิ์ผู้ใช้ไม่ได้'},500,origin);
   return json({user:{id,username:loginName,login_name:loginName,display_name:displayName,role:'office',can_export_report:canExportReport}},200,origin);
 });

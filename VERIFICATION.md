@@ -52,3 +52,21 @@
 การแก้ครั้งก่อนทดสอบการบันทึกแผนกแยกตามรายการสินค้า, สิทธิ์อ่าน `po_items`, การเพิ่มและเก็บแผนก, การห้ามออฟฟิศทั่วไปยืนยันรับสินค้าของคนอื่น และการปฏิเสธ RPC สำหรับบัญชีที่ปิดใช้งานใน PGlite แล้ว
 
 โหมดสาธิตมี login และการตั้งรหัสผ่านเพื่อทดลอง flow ข้อมูล PO และบัญชีอยู่ใน Local Storage ของ browser นี้และไม่ใช้แทน Supabase production
+
+
+## ตรวจต่อ Task 6–7 — 2 ตุลาคม 2026
+
+- ตรวจ GitHub `Perthyw/PO` จริง: branch `main`, starting commit `4624e424266fcfd3353cd1f5d288257ae5264462`; ไม่ใช้ repo HR
+- ตรวจ project `rhkilsnuqdkzwlncjvkj` จริง: ACTIVE_HEALTHY, องค์กร `Perthyw GRAND`, Free plan
+- ข้อ 1 อนุมัติ: แก้ owner protection ใน `manage-user` แล้ว deploy version 5 (ACTIVE); อ่าน source กลับจาก Supabase แล้วตรงกับไฟล์ที่ deploy
+- ป้องกัน owner ทั้งการเลือกด้วย ID และ login name; ไม่แก้ Auth เมื่อ target ไม่ใช่ active office, ID ที่ระบุไม่พบ, lookup ล้มเหลว หรือชื่อชนบัญชีอื่น; ใช้ update ที่คง role เดิม และ insert สำหรับบัญชีใหม่แทน upsert
+- `npm test`: 35/35 ผ่าน (เดิม 21 + regression tests function 14); `npm run check` และ `git diff --check` ผ่าน ใช้ Node 24 สำหรับ stripTypeScriptTypes ใน function test; function tests จำลอง Auth/profile และไม่ใช่ production owner mutation test
+- อ่าน Auth settings จริงผ่าน `/auth/v1/settings`: HTTP 200, `disable_signup=false`; public signup ยังเปิดอยู่และยังไม่ได้เปลี่ยน การเชื่อมต่อ Supabase MCP ชุดนี้ไม่มีเครื่องมือแก้ Auth configuration และ CLI/PAT ไม่พร้อม จึงต้องใช้ Dashboard เพื่อปิดให้เสร็จ
+- Production function version 5: CORS preflight จาก Vercel ได้ 204, origin อื่นได้ 403; POST ไม่มี session ได้ 401
+- ตรวจ metadata production แบบ read-only: ตาราง PO ทั้ง 7 เปิด RLS; policies จำกัดตาม active profile/ผู้สร้าง/สิทธิ์บัญชีหลัก; anon ไม่มี table grants และไม่มี EXECUTE ของ RPC ธุรกิจ; authenticated มี SELECT และ notification UPDATE เฉพาะ read_at ตาม schema
+- Security Advisor: INFO `po_commands` ไม่มี policy เป็นการ deny direct access โดยตั้งใจ; RPC ธุรกิจ SECURITY DEFINER 4 ตัวมี authenticated EXECUTE ตาม flow และตรวจบทบาท/active profile ภายใน พร้อม search_path ว่าง
+- ประเด็นค้าง: `public.rls_auto_enable()` มี EXECUTE สำหรับ PUBLIC/anon/authenticated (Advisor WARN) ต้องทบทวนและ revoke สิทธิ์ที่ไม่จำเป็นด้วย migration; leaked password protection ปิดอยู่ (WARN) ต้องตรวจความพร้อมของ plan ก่อนเปิด; ยังไม่ได้แก้ schema/Auth setting สองรายการนี้
+- Remediation: https://supabase.com/docs/guides/database/database-linter?lint=0028_anon_security_definer_function_executable และ https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
+- Task 6 ยังไม่ปิด: production test data = ข้อ 2 ไม่อนุมัติ จึงไม่สร้างบัญชี/PO ทดสอบหรือทำ lifecycle writes; หลักฐานอัตโนมัติแยกจาก production
+- Task 7 ยังไม่ปิด: backup/restore = ข้อ 3 ไม่อนุมัติ จึงไม่ dump/restore/สร้าง project หรือเปลี่ยนแผน; สิทธิ์ผู้ดูแล Dashboard ยังไม่ได้ตรวจ
+- แนวทาง migration ครั้งถัดไป: สร้างไฟล์ด้วย `supabase migration new`, ทดสอบในฐานแยก, review SQL/สิทธิ์, ตรวจ remote migration list และ `db push --dry-run` ก่อน apply เมื่อได้รับอนุมัติ; หลัง apply ตรวจ Advisor และ metadata ซ้ำ ถ้าต้องแก้ให้ใช้ forward migration ที่รักษาข้อมูล ห้ามทดลองลบบน production

@@ -90,20 +90,25 @@
 
 ### Task 6 — ทดสอบ production flow
 
-- [x] ทดสอบอัตโนมัติ 21/21 ด้วย PGlite และ mock REST
+- [x] ทดสอบอัตโนมัติ 35/35 ด้วย PGlite, mock REST และ manage-user regression tests (2026-10-02)
 - [ ] ทดสอบเปิด PO หลายรายการและแผนกต่างกัน
 - [ ] ทดสอบ VAT/NON VAT, อนุมัติ, ปฏิเสธ, รับสินค้า, ปิดใบ และ invoice gate
 - [ ] ทดสอบบัญชีหลัก, บัญชีทั่วไป, รายงาน, Excel, notification และ retry
 - [ ] ตรวจ responsive, keyboard/focus, session expiry และ browser console บนเว็บจริง
 
+สถานะ 2026-10-02: deploy `manage-user` version 5 พร้อม owner protection แล้ว; function source อ่านกลับตรงกัน ข้อ 1 ยังไม่ครบเพราะ Auth settings จริงยังเป็น `disable_signup=false` และต้องปิดผ่าน Dashboard. Task 6 production test data (ข้อ 2) ยังไม่อนุมัติ จึงไม่สร้างข้อมูลทดสอบ
+
 ### Task 7 — Backup และ security
 
 - [ ] กำหนดผู้ดูแลและสิทธิ์เข้า Supabase Dashboard
 - [ ] ตั้งรอบ backup และทดสอบ restore ใน project แยก
-- [ ] ตรวจ Security Advisor, RLS, RPC grants และ secret exposure
+- [x] ตรวจ Security Advisor, RLS และ RPC grants แบบ read-only (2026-10-02); ผลและประเด็นค้างอยู่ใน VERIFICATION.md
+- [ ] แก้ประเด็น security ค้างและตรวจ secret exposure/สิทธิ์ Dashboard ให้ครบ
 - [ ] วางขั้นตอน migration/rollback โดยไม่ลบข้อมูล production ทดลอง
 
-สถานะ `[x]` คือทำหรือทดสอบในซอร์สแล้ว ส่วน `[ ]` ต้องทำบน Supabase/เว็บจริงก่อนเปิดใช้งาน production รายละเอียด checklist แบบเต็มอยู่ในหัวข้อ [รายละเอียดการทำงานของ 7 Task](#รายละเอียดการทำงานของ-7-task)
+Task 7 backup/restore (ข้อ 3) ยังไม่อนุมัติ; ไม่มีการ dump/restore หรือเปลี่ยนแผน
+
+สถานะ `[x]` คือทำหรือทดสอบตามหลักฐานที่ระบุแล้ว ส่วน `[ ]` ต้องทำบน Supabase/เว็บจริงก่อนเปิดใช้งาน production รายละเอียด checklist แบบเต็มอยู่ในหัวข้อ [รายละเอียดการทำงานของ 7 Task](#รายละเอียดการทำงานของ-7-task)
 
 ## ระบบนี้ใช้ทำอะไร
 
