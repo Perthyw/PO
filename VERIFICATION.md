@@ -104,3 +104,11 @@
 - BrowserAuth PO requestยังไม่ยืนยันsign-in แล้วผู้ใช้declinedการร้องขอถัดมา;หยุดการเข้าสู่ระบบและไม่กล่าวว่าทดสอบbrowserหลังloginแล้ว
 
 - Owner login timeout report2026-10-02:บัญชีจริง roleowner/deletednull/bannednull/emailconfirmedtrue/passwordexists/emailmatchestrue;ไม่ได้resetหรือbanเจ้าของ Authhealth200และsyntheticinvalidcredentialtoken400ตอบประมาณ9.4วินาทีจากruntime;browserแสดงnetworktimeoutไม่ใช่invalidpassword เพิ่มเฉพาะlogin/token+profileเวลารอ45วินาทีจาก15 และข้อความnetworkAuth ไม่เปลี่ยนเวลารอPOwrites ยังต้องผู้ใช้ลองบนเครือข่ายจริงก่อนสรุปหาย
+
+
+## Session and recovery follow-up — 3 October 2026
+
+- User confirmed owner password recovery works. Treat the localhost redirect report as resolved according to user confirmation; no secret credentials captured.
+- Re-ran test/session.test.mjs: passed. Mocked REST test covers persisted-session restore, refresh near expiry, preserving session on network error, and clearing disabled profile. This does not prove real elapsed JWT expiry on production.
+- Actual timed JWT-expiry test remains deferred; no authenticated production session was used in this follow-up.
+- Push notifications remain proposed and unimplemented; do not mark this feature complete.

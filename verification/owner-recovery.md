@@ -12,3 +12,7 @@ Scope: Perthyw/PO only; no production PO/profile deletion, test account creation
 Operator check: Supabase Auth URL Configuration must allow https://po-thegrands.vercel.app/?view=recovery with correct Site URL. Recovery template should use ConfirmationURL. Default SMTP restricts recipients to organization-team addresses; configure custom SMTP if needed. Request one link, check inbox/spam, open it and enter a new password personally. Never share password/link/token in chat or GitHub.
 
 References: https://supabase.com/docs/guides/auth/passwords ; https://supabase.com/docs/guides/auth/auth-smtp ; https://supabase.com/docs/guides/auth/redirect-urls
+
+## User verification — 2026-10-03
+
+The owner explicitly confirmed successful password recovery after the earlier localhost redirect failure. This is user-reported production end-to-end evidence, not an agent-observed reset. Prior delivery/redirect caveats above describe the pre-confirmation state. No password or recovery token is recorded.
