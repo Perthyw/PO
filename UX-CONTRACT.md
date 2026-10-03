@@ -58,3 +58,6 @@ Capture and remove callback URL secrets before session restoration. Validate Aut
 
 ## Per-item payment choice (2026-10-03)
 `lineForm` owns each item's native เครดิต/เงินสด radio group. New items require an explicit selection before review; missing selection shows an inline group error and focuses the first radio. Changing selection updates the draft and command key like other item edits. Separate item groups preserve independent choices across rerenders. Shared `itemsTable` owns the การชำระเงิน column in review and detail; monthly Excel uses the same labels. Legacy missing values display ไม่ระบุ. This metadata does not change totals or lifecycle permissions.
+
+## PO arrow navigation
+`navigatePOForm` in `dist/form-navigation.js` owns optional arrow-key navigation for the create form. Left/Up move backward at the start of text; Right/Down move forward at its end. Number fields move directly. Preserve selections, IME composition, modified shortcuts and native date/radio/checkbox/datalist behavior. Skip unavailable controls, do not wrap or submit, and retain standard Tab navigation. Login username has a visible label and no example placeholder.

@@ -121,3 +121,6 @@
 - Isolated PGlite checks apply the actual migration and verify legacy preservation, both item representations, enum/type rejection and atomicity, idempotency, permissions, reports and invoice lifecycle gate.
 - Supabase `rhkilsnuqdkzwlncjvkj`: migration `20261003142936_item_payment_method` applied. Read-only verification confirms nullable constrained metadata, RLS and function grants. PO/item counts remain 0/0 and existing-data hashes unchanged; no production PO or account was created for these tests. Security advisors show no new findings.
 - Browser UI observation was unavailable in this session. Actual interactive production PO creation has not been claimed as tested; database validation used an isolated database.
+
+## Login placeholder and PO arrow navigation — 2026-10-03
+87/87 tests pass, syntax/whitespace checks pass and strict UI audit has zero findings. Navigation tests cover text boundaries, selection, IME/modifiers, native control exemptions, disabled fields, focus, no wrapping and no form submission. Existing actual-app jsdom payment checks remain passing. Production browser keyboard interaction remains unobserved in this session.
