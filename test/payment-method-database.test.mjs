@@ -1,0 +1,26 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {PGlite} from '@electric-sql/pglite';
+import {readFile} from 'node:fs/promises';
+const office='11111111-1111-4111-8111-111111111111',owner='22222222-2222-4222-8222-222222222222';
+const item={name:'สินค้า',spec:'สเปค',source:'ร้าน',qty:'1',unit:'กล่อง',unit_price:'3000',vat:true};
+test('item payment method forward migration on isolated PostgreSQL',async t=>{
+ const db=new PGlite();try{
+ await db.exec(`create role anon;create role authenticated;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`);
+ await db.exec(await readFile(new URL('../supabase/migrations/20260929000000_initial_po_schema.sql',import.meta.url),'utf8'));
+ await db.query('insert into auth.users values ($1),($2)',[office,owner]);
+ await db.query("insert into public.profiles(id,login_email,display_name,role,can_export_report) values ($1,'office@example.test','Office','office',true),($2,'owner@example.test','Owner','owner',false)",[office,owner]);
+ const as=async(id,fn)=>{await db.exec('set role authenticated');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id]);try{return await fn();}finally{await db.exec('reset role');}};
+ const create=(items,key=crypto.randomUUID())=>db.query("select public.create_po($1::jsonb,'2026-10-04',$2) as po",[JSON.stringify(items),key]).then(r=>r.rows[0].po);
+ const legacy=await as(office,()=>create([item]));
+ await db.exec(await readFile(new URL('../supabase/migrations/20261003142936_item_payment_method.sql',import.meta.url),'utf8'));
+ await t.test('historical JSON unchanged and old rows unspecified',async()=>{const row=(await db.query('select items from public.purchase_orders where id=$1',[legacy.id])).rows[0];assert.deepEqual(row.items,legacy.items);assert.equal('payment_method' in row.items[0],false);assert.equal((await db.query('select payment_method from public.po_items where po_id=$1',[legacy.id])).rows[0].payment_method,null);});
+ let mixed;
+ await t.test('credit and cash persist in both representations with VAT unchanged',async()=>{mixed=await as(office,()=>create([{...item,payment_method:'credit'},{...item,payment_method:'cash',vat:false}]));assert.deepEqual(mixed.items.map(i=>i.payment_method),['credit','cash']);assert.equal(mixed.tax_cents,19626);assert.equal(mixed.total_cents,600000);assert.deepEqual((await db.query('select payment_method from public.po_items where po_id=$1 order by line_no',[mixed.id])).rows.map(r=>r.payment_method),['credit','cash']);});
+ await t.test('omitted null and empty legacy values have no cash default',async()=>{const result=await as(office,()=>create([item,{...item,payment_method:null},{...item,payment_method:''}]));assert.deepEqual(result.items.map(i=>i.payment_method),[null,null,null]);});
+ await t.test('invalid method final line rolls back all related tables',async()=>{const tables=['purchase_orders','po_items','po_events','notifications','po_commands'];const counts=async()=>Promise.all(tables.map(table=>db.query('select count(*) as n from public.'+table).then(r=>r.rows[0].n)));const before=await counts();for(const value of ['paid','CASH',' cash ',true,1,{},[]])await as(office,()=>assert.rejects(()=>create([{...item,payment_method:'credit'},{...item,payment_method:value}])));assert.deepEqual(await counts(),before);});
+ await t.test('idempotent metadata retained and changed method rejects reused ID',async()=>{const key=crypto.randomUUID(),lines=[{...item,payment_method:'credit'}];const a=await as(office,()=>create(lines,key)),b=await as(office,()=>create(lines,key));assert.equal(a.id,b.id);assert.equal(b.items[0].payment_method,'credit');await as(office,()=>assert.rejects(()=>create([{...item,payment_method:'cash'}],key)));assert.equal((await db.query('select count(*) as n from public.po_items where po_id=$1',[a.id])).rows[0].n,1);});
+ await t.test('owner create office direct writes and anon reads still denied',async()=>{await as(owner,()=>assert.rejects(()=>create([{...item,payment_method:'cash'}])));await as(office,()=>assert.rejects(()=>db.query("update public.po_items set payment_method='cash'")));await db.exec('set role anon');try{await assert.rejects(()=>db.query('select payment_method from public.po_items'));}finally{await db.exec('reset role');}});
+ await t.test('report metadata and mandatory invoice close gate preserved',async()=>{const act=(po,action,invoice=false)=>db.query('select public.act_on_po($1,$2,$3,$4,$5,$6) as po',[po.id,action,po.version,'',invoice,crypto.randomUUID()]).then(r=>r.rows[0].po);let po=await as(owner,()=>act(mixed,'approve'));const report=await as(office,()=>db.query("select public.monthly_po_report('2026-10-01') as report").then(r=>r.rows[0].report));assert.deepEqual(report.rows.find(r=>r.id===po.id).items.map(i=>i.payment_method),['credit','cash']);po=await as(office,()=>act(po,'receive'));await as(owner,()=>assert.rejects(()=>act(po,'close')));po=await as(owner,()=>act(po,'close',true));assert.equal(po.status,'closed');assert.deepEqual(po.items.map(i=>i.payment_method),['credit','cash']);});
+ }finally{await db.close();}
+});

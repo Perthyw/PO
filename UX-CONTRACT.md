@@ -54,3 +54,7 @@ Source: explicit user approval 2026-10-02. Reuse field(), passwordControl(), err
 ## Owner recovery
 
 Capture and remove callback URL secrets before session restoration. Validate Auth identity and active owner profile. Use existing masked controls, field validation, pending guards and generic notices; invalid links offer a new request. Never expose recipient email. Refresh after URL cleanup needs a new link.
+
+
+## Per-item payment choice (2026-10-03)
+`lineForm` owns each item's native เครดิต/เงินสด radio group. New items require an explicit selection before review; missing selection shows an inline group error and focuses the first radio. Changing selection updates the draft and command key like other item edits. Separate item groups preserve independent choices across rerenders. Shared `itemsTable` owns the การชำระเงิน column in review and detail; monthly Excel uses the same labels. Legacy missing values display ไม่ระบุ. This metadata does not change totals or lifecycle permissions.

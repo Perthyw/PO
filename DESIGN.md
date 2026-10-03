@@ -76,3 +76,7 @@ The brand mark is a compact archive box holding layered blue, blush, grey, and t
 - Use the stated 7% VAT-inclusive calculation and never skip invoice confirmation for NON VAT.
 - Don't use browser role selection as production authorization.
 
+
+
+## Item payment choice
+Use a native fieldset and mutually exclusive radio controls per item for เครดิต/เงินสด, with a visible การชำระเงิน legend, 44px minimum target, keyboard focus and checked state consistent with the existing theme. No option is preselected. Keep the group error adjacent to the controls and focus the first radio when selection is missing.

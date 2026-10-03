@@ -112,3 +112,12 @@
 - Re-ran test/session.test.mjs: passed. Mocked REST test covers persisted-session restore, refresh near expiry, preserving session on network error, and clearing disabled profile. This does not prove real elapsed JWT expiry on production.
 - Actual timed JWT-expiry test remains deferred; no authenticated production session was used in this follow-up.
 - Push notifications remain proposed and unimplemented; do not mark this feature complete.
+
+
+## Per-item payment information — 2026-10-03
+- `npm test`: 85/85 passing; `npm run check` and whitespace checks pass.
+- Actual app jsdom checks: 8 cases pass, covering required selection/focus, draft changes, independent item choices, rerender preservation, review/detail and legacy rendering. Strict UI audit: no findings.
+- Actual bundled ExcelJS export/readback verifies the การชำระเงิน column, เครดิต/เงินสด/ไม่ระบุ labels, 17-column filter, currency formatting and unchanged totals.
+- Isolated PGlite checks apply the actual migration and verify legacy preservation, both item representations, enum/type rejection and atomicity, idempotency, permissions, reports and invoice lifecycle gate.
+- Supabase `rhkilsnuqdkzwlncjvkj`: migration `20261003142936_item_payment_method` applied. Read-only verification confirms nullable constrained metadata, RLS and function grants. PO/item counts remain 0/0 and existing-data hashes unchanged; no production PO or account was created for these tests. Security advisors show no new findings.
+- Browser UI observation was unavailable in this session. Actual interactive production PO creation has not been claimed as tested; database validation used an isolated database.

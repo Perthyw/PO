@@ -73,3 +73,5 @@ body{background:var(--paper)}button:hover{background:#eaf5ff;border-color:#86b9e
 .department-row .department-archive svg{width:20px;height:20px;display:block}
 @media(max-width:700px){.report-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}
 @media(max-width:420px){.report-metrics .metric{padding:14px}.report-metrics .metric strong{font-size:27px}.report-metrics .metric .marker{right:14px;top:16px}}
+
+.payment-choice{margin:14px 0;padding:0;border:0;min-width:0}.payment-choice legend{font-weight:700;margin-bottom:8px}.payment-options{display:flex;gap:10px;flex-wrap:wrap}.payment-option{display:flex;align-items:center;gap:8px;min-height:44px;padding:8px 14px;border:1px solid var(--line);border-radius:9px;background:var(--panel);cursor:pointer}.payment-option:hover{border-color:var(--brand)}.payment-option:has(input:checked){border-color:var(--brand);background:var(--paper)}.payment-option input{width:18px;height:18px;min-height:0;margin:0;accent-color:var(--brand)}.payment-option:has(input:focus-visible){outline:2px solid var(--brand);outline-offset:3px}.payment-option:has(input[aria-invalid=true]){border-color:var(--danger)}

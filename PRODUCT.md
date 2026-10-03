@@ -20,3 +20,7 @@ The owner may change their own login alias and password after verifying their cu
 ## Owner password recovery
 
 Owner recovery accepts alias/email, keeps tokens in memory only, and returns to login after setting a matching password of at least six characters. Office users contact the owner. Live email/redirect verification remains required.
+
+
+## Per-item payment information
+New PO items require an explicit `credit` or `cash` selection in the creation UI, with no default. This is informational metadata for the owner, not payment processing or settlement tracking. Review/detail tables and monthly Excel item rows show the Thai labels เครดิต/เงินสด under การชำระเงิน. Historical items and backward-compatible callers without this field remain unspecified; no historical values are inferred. Totals, VAT and lifecycle rules are unchanged.
