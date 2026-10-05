@@ -4,7 +4,7 @@ import {createRequire} from 'node:module';
 import vm from 'node:vm';
 import {createPreviewService} from '../dist/preview-workflow.js';
 import {createPreviewFixtures} from '../dist/preview-fixtures.js';
-import {buildPreviewWorkbook} from '../dist/preview-export.js';
+import {buildPreviewWorkbook,createPreviewDownload} from '../dist/preview-export.js';
 const require=createRequire(import.meta.url);
 function excelJS(){const module={exports:{}};vm.runInThisContext('(function(module,exports,require){'+require('node:fs').readFileSync(new URL('../dist/vendor/exceljs.min.js',import.meta.url),'utf8')+'\n})')(module,module.exports,require);return module.exports;}
 test('generated preview XLSX parses and reconciles confirmed, received, rejected, mixed and estimated item values',async()=>{
@@ -16,5 +16,9 @@ test('generated preview XLSX parses and reconciles confirmed, received, rejected
  const rejected=rows.filter(row=>row['เลข PO']==='DEMO-2026-10109');assert.ok(rejected.length);assert.ok(rejected.every(row=>row['ยอดซื้อที่นับรายงาน']===0));
  const mixed=rows.filter(row=>row['เลข PO']==='DEMO-2026-10108');assert.ok(mixed.some(row=>row['สินค้า']==='ถุงมือ · อนุมัติ'&&row['ยอดซื้อที่นับรายงาน']>0));assert.ok(mixed.some(row=>row['สินค้า']==='น้ำยาทำความสะอาด · รับแล้ว'&&row['ยอดซื้อที่นับรายงาน']>0));assert.ok(mixed.some(row=>row['สินค้า']==='แก้วกระดาษ · รออนุมัติ'&&row['ยอดซื้อที่นับรายงาน']===0));
  const estimate=rows.find(row=>row['เลข PO']==='DEMO-2026-10104');assert.equal(estimate['วงเงินประมาณการ'],estimate['รวมสุทธิ']);assert.equal(estimate['ยอดซื้อที่นับรายงาน'],0);
+});
+test('preview export returns a named persistent blob URL for a direct user download click',async()=>{
+ const ExcelJS=excelJS(),service=createPreviewService({storage:new MapStorage(),fixtures:createPreviewFixtures()}),report=service.report('2026-10',{id:'preview-primary',role:'primary',display_name:'ฝ่ายจัดซื้อหลัก'});let blob=null,revoked=false;const create=URL.createObjectURL,revoke=URL.revokeObjectURL;URL.createObjectURL=value=>{blob=value;return 'blob:preview-test';};URL.revokeObjectURL=()=>{revoked=true;};
+ try{const file=await createPreviewDownload(report,'2026-10',ExcelJS);assert.equal(file.url,'blob:preview-test');assert.equal(file.filename,'PO-The-Grands-ตัวอย่าง-2026-10.xlsx');assert.equal(blob.type,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');assert.ok(blob.size>0);assert.equal(revoked,false);}finally{URL.createObjectURL=create;URL.revokeObjectURL=revoke;}
 });
 class MapStorage{constructor(){this.map=new Map();}getItem(k){return this.map.get(k)||null;}setItem(k,v){this.map.set(k,String(v));}removeItem(k){this.map.delete(k);}}
