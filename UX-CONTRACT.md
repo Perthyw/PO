@@ -61,3 +61,12 @@ Capture and remove callback URL secrets before session restoration. Validate Aut
 
 ## PO arrow navigation
 `navigatePOForm` in `dist/form-navigation.js` owns optional arrow-key navigation for the create form. Left/Up move backward at the start of text; Right/Down move forward at its end. Number fields move directly. Preserve selections, IME composition, modified shortcuts and native date/radio/checkbox/datalist behavior. Skip unavailable controls, do not wrap or submit, and retain standard Tab navigation. Login username has a visible label and no example placeholder.
+
+## Isolated per-item approval preview (2026-10-05)
+Business and lifecycle authority: `PREVIEW-WORKFLOW-PLAN.md`. `dist/preview-bootstrap.js` is selected only when the preview build generates `config.previewWorkflow === true` with empty Supabase credentials. Production continues to load `dist/app.js` directly; its authentication, API, and database contracts do not inherit preview behavior.
+
+Preview-only UI variant: `dist/preview-ui.js` reuses the Thai product palette, native labelled fields, native dialog, status text and visible scrollbars. Synthetic role buttons, scenario picker and reset control are demo affordances only; they do not represent production authorization or credentials. The persistent notice says data are synthetic and browser-local. Preview mutations use a separate local-storage namespace and the independent item workflow in `preview-workflow.js`.
+
+The preview list and detail show item-level status and amounts. Owner decisions apply to one item; office revision forms preserve all author fields and show immutable before/after snapshots and satang deltas in the history. Estimated-price authorization is shown separately from confirmed purchases. The preview report and workbook use the same eligibility rule: confirmed-price items that are approved or received count toward purchase value; estimates, pending, paused, rejected and returned rows do not. Close confirmation requires an invoice acknowledgement and a resolved PO; closed items expose no mutation controls.
+
+At narrow widths, preview tables own horizontal scrolling, forms and detail content retain natural page height, and all actions remain visible. `mobile-check.html` exists only in the generated preview build as a 390×844 inspection harness and is removed by the next clean production build.
