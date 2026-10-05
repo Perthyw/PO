@@ -1,4 +1,5 @@
 {
   "buildCommand": "node scripts/prepare-deploy.mjs",
-  "outputDirectory": "web-build"
+  "outputDirectory": "web-build",
+  "framework": null
 }
