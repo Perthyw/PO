@@ -36,7 +36,7 @@ Deno.serve(async request=>{
   }
   if(body.action!=='upsert')return json({message:'คำสั่งไม่ถูกต้อง'},400,origin);
   const loginName=String(body.username||'').trim().toLowerCase(),email=loginName+'@po.thegrands.local',displayName=String(body.display_name||loginName).trim(),password=String(body.password||''),canExportReport=body.can_export_report===true;
-  if(!/^[a-z0-9._]{4,50}$/.test(loginName)||displayName.length<1||displayName.length>100)return json({message:'ชื่อผู้ใช้ใช้ตัวอังกฤษ ตัวเลข จุด หรือขีดล่าง 4–50 ตัว และระบุชื่อที่แสดง'},400,origin);
+  if(!/^[a-z0-9._]+$/.test(loginName)||displayName.length<1||displayName.length>100)return json({message:'ชื่อผู้ใช้ใช้ตัวอังกฤษ ตัวเลข จุด หรือขีดล่าง และระบุชื่อที่แสดง'},400,origin);
   // Inspect all matching profiles, including disabled accounts, before any Auth write.
   // A supplied ID must never silently turn an edit into account creation.
   const hasProfileId=body.profile_id!==undefined&&body.profile_id!==null;
