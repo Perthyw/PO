@@ -1,3 +1,33 @@
+# Active revised preview contract — 6 October 2026
+
+This section supersedes all workflow/design approvals below. The earlier per-item/estimated-price preview is historical evidence only. Explicit current user instruction is authoritative: preserve the original production UI, remove estimated-price concepts, make whole-PO approval the normal action, keep partial decisions as an explicit secondary mode, and finish Excel export.
+
+## Authorized scope and implementation
+
+- Production `dist/app.js`, `style.css`, `domain.js`, `api.js`, `config.js`, `index.html`, Supabase migrations and edge functions remain unchanged. No main merge or production deploy.
+- Preview UI must faithfully reuse the original sidebar/topbar/logo/identity placement, five PO status metrics, list/order tracker, table, detail document, create/review form, report, dialogs, Thai labels and responsive layout. Use the original markup/classes/helper ownership as implementation source; do not restyle the previous custom preview dashboard. Preview-only synthetic role/scenario/reset controls must be small additions to the existing shell.
+- Use existing `style.css` without new alternate palette/layout. Limit extra preview CSS to necessary item decision/revision controls and demo notice. Preserve original query-state pagination, form arrow navigation, field validation, dirty guards, focus, modal behavior and THB/VAT presentation.
+- All item prices are actual confirmed prices. Remove estimated-price selector, budget approvals, budget metrics, explanatory copy and budget workbook columns. Use a new versioned preview namespace and visibly reset old synthetic estimated scenarios; never interpret a prior budget authorization as a purchase approval. Existing production/demo/session storage must not be read, converted or cleared.
+
+## Normal and exceptional lifecycle
+
+1. Office creates and reviews a PO using original fields. Owner default primary action is **อนุมัติทั้งใบ PO**. Execute as one atomic command with one PO version/idempotency identity; approve eligible pending rows together and retain per-item immutable audit attribution. A failure on any target makes no changes.
+2. **อนุมัติบางรายการ** is the explicit secondary mode. Only in this mode expose per-item approve, return-with-reason or terminal reject-with-reason controls. Do not put per-item decision grids in the normal approval path. Independent approved rows can proceed to receipt while other rows remain unresolved.
+3. Creator office requests item revision from pending or approved state with mandatory reason; no direct edits to submitted pending rows. Item is immediately paused against purchase/receipt. Owner may refuse with reason and restore exact prior pending/approved state, or unlock the specific item. Creator edits only unlocked/returned rows and resubmits for fresh approval, preserving department/name/spec/source/quantity/unit/actual price/payment/VAT/note and immutable before/after/amount delta audit. Received items/closed POs immutable. Primary office may view/report/receive others' approved rows, but money authoring belongs only to creator.
+4. Original normal tracker remains request → approved/waiting goods → received/waiting invoice → closed. Mixed states must have truthful contextual explanations and do not claim all goods received. Per-item receive requires acknowledgement; owner close requires all live rows received and invoice acknowledgement. All-rejected PO resolves rejected.
+5. Root-confirmed bulk gate: whole approval is available only when every live unreceived row is pending or already approved, with at least one pending target. If returned/editing/revision-requested rows remain unresolved, disable it, explain why and offer explicit partial mode for ready pending siblings. Never silently approve a pending subset under a whole-PO label. Normal receipt may use an atomic whole-goods acknowledgement when all live unreceived rows are approved; independent per-item receipt is secondary for partial cases.
+
+## Excel completion and evidence gates
+
+- Original monthly report layout and summary/item workbook structure retained. Monetary eligibility is actual approved/received/closed item totals even within mixed POs; unresolved/paused/rejected rows excluded. Preserve PO/item status, requester, department, original author fields and base/VAT/gross amounts. No estimated/budget columns.
+- Generate a real XLSX with workbook parsing tests; retain the visible native Blob download link until replacement/navigation. Success copy says file ready, not downloaded. Verify actual browser download if available; report observer limitation accurately if still unverified.
+- Required regressions: atomic whole approval, secondary partial mode, only actual prices including old demo reset, creator request/owner unlock/fresh approval, refusal exact restore, stale version/durable dedupe/action-role guards/storage rollback, preserved form fields/multiline radios, mixed monetary summaries and XLSX, receipt/close invoice gates, original UI parity desktop/390px and dirty/modal keyboard recovery.
+- Supervisor provisional preview-deploy approval follows complete diff/domain/build/XLSX checks; root handles GitHub/Vercel and browser evidence. Final approval distinguishes synthetic demo evidence from Supabase production and records any export limitation. Previous approval below does not approve the revised implementation.
+
+---
+
+# Historical plan and review evidence (superseded)
+
 # Per-item PO workflow preview plan and approval checklist
 
 Authority: explicit user-approved preview proposal, 5 October 2026. This document describes an isolated demo extension. PRODUCT.md and production Supabase contracts remain authoritative for production; this preview does not implement production RPC, schema, RLS, Auth or deployment changes.
@@ -75,3 +105,13 @@ Automated evidence: worker and root report the final complete suite at 101 passi
 **Export browser limitation:** the final preview generated a visible native download link with a Blob URL and `.xlsx` filename and displayed “ไฟล์ Excel พร้อมดาวน์โหลด”. Root's DOM/native-anchor download observers timed out and did not yield a downloaded file. No application error was observed, but actual browser download completion is unverified. The cause is not established. Do not claim that browser Excel download passed. The persistent link remains available for the user to try; generated workbook content has automated parsing evidence.
 
 All records/actions reviewed here are synthetic browser-local demo behavior. Real Supabase Auth, RLS, RPC, account permissions, notifications and multi-device behavior were not validated by this preview and require their own implementation and integration review.
+
+## Historical export limitation resolved — 6 October 2026
+
+Root subsequently observed a real download from the previously deployed preview's visible native Excel link, retrieved a 10,966-byte XLSX and parsed its two worksheets (`สรุปทดลอง`, 6 rows × 2 columns; `รายการสินค้า`, 21 rows × 22 columns). The workbook summary total of 8,890 THB matched the displayed browser report. This supersedes the earlier unverified-download limitation for that prior deployment only. No cause for the prior timeouts is established. The new actual-price/original-UI revision requires its own workbook and browser verification.
+
+## Current revision supervisor predeployment review (2026-10-06)
+
+Static/domain review confirms actual-only item prices; atomic whole-PO approval and receipt gates; explicit partial decisions; creator requests from pending or approved, owner unlock/refusal and fresh approval after editing; primary-only aggregate report; isolated v2 storage and generated preview assets. Independent supervisor probe verified pending → request → refusal restores pending and its exact amount. Worker reported 99 passing tests and syntax/diff checks, including parsed XLSX and notification routing/deduplication. Production application/style/config/index remain unchanged.
+
+This is evidence for provisional preview publication for browser testing, not final browser acceptance or production approval. The new original-shell build still requires live desktop/mobile parity, whole and partial flows, dirty-edit navigation, notifications, and a real downloaded workbook reconciled against its report. Prior-build download evidence above does not satisfy the new build gate.
