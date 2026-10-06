@@ -1,0 +1,755 @@
+diff --git a/PRODUCT.md b/PRODUCT.md
+index 20efd07..acf1178 100644
+--- a/PRODUCT.md
++++ b/PRODUCT.md
+@@ -1,5 +1,7 @@
+ # PO The Grands business contract
+ 
++Web Push addition (user approval 2026-10-06, unreleased): successful PO lifecycle events also notify the existing authorized recipients on opted-in devices. See PUSH-NOTIFICATIONS.md for event scope, permission lifecycle and release status. Navigation/filter clicks do not generate notifications. This does not add an edit/return-for-revision workflow.
++
+ Source: explicit user request and browser comments dated 2026-09-25 onward. This is an independent PO application. A Supabase project has been created, but the website has not yet completed schema deployment, configuration, data migration, or production verification.
+ 
+ Office creates a PO. Owner approves or rejects it; rejection requires a reason. Office confirms all goods received. Owner can close only after receiving the tax invoice. The same close gate applies to VAT and NON VAT purchases.
+diff --git a/PUSH-NOTIFICATIONS.md b/PUSH-NOTIFICATIONS.md
+new file mode 100644
+index 0000000..1097962
+--- /dev/null
++++ b/PUSH-NOTIFICATIONS.md
+@@ -0,0 +1,66 @@
++# Web Push — prepared, not deployed
++
++This changes only PO. Production website, Auth settings, data and Edge Functions have not been modified. Do not merge into an auto-deploy branch until deployment is approved.
++
++## User flow
++
++Open the bell → แจ้งเตือนบนเครื่องนี้ → เปิดแจ้งเตือน → allow the browser/OS prompt. Normally once per browser/device. Reopening the website with an existing subscription does not prompt again. Signing out or switching account turns off the old account's subscription; enable it for the next account. Each device has a separate subscription. Clearing website data, removing the installed web app, revoking permission, expired provider subscriptions or rotating VAPID keys may require enabling again.
++
++For iOS/iPadOS 16.4+, add the website to Home Screen and launch that icon. The manifest marks this as a standalone web app. Android and desktop use supported browsers over HTTPS. Sounds/banners depend on system notification settings, mute/Focus; the website cannot force a sound. This implementation has not yet been verified on a real iPhone or Android device.
++
++## Event ownership
++
++Push is queued AFTER INSERT into the existing `public.notifications`, within the same database transaction. Failed or rolled-back PO actions enqueue nothing. Existing business RPC idempotency prevents duplicate event rows. Existing in-app notifications and read marking remain unchanged. No permission prompt occurs on page load.
++
++| Committed action currently present | Recipients |
++|---|---|
++| Create PO | Active owners |
++| Approve / reject | PO creator |
++| Receive goods | Active owners |
++| Close PO | PO creator |
++
++Return for revision, edit request/unlock and resubmit are not present in the reviewed main source. When those workflows are implemented, they must insert a new canonical notification for the proper recipient. Transport then queues it automatically. Do not claim those business flows exist because the Push transport exists. Existing notification action constraints/unique key must be reviewed for repeated revision rounds.
++
++The lock-screen message is generic: มีการอัปเดตใบ PO แตะเพื่อดูรายละเอียด. No product, vendor, price, reason, email or username is sent. Clicking opens the PO by UUID and the usual login/RLS checks still apply. No service-worker caches are created. IndexedDB contains only the opaque current subscription binding ID, not credentials or PO content.
++
++## Security and delivery
++
++Client registration RPCs verify an active profile and auth.uid(); callers cannot select a recipient. Endpoint/key tables have RLS and no direct anon/authenticated grants. The queue worker RPCs are executable only by service_role. The internal trigger function lives in a non-exposed schema. Only known Apple/Google/Mozilla/Microsoft HTTPS provider endpoints are accepted; URL length and subscription count are bounded. One endpoint cannot be transferred to another account. Logout clears local binding before provider unsubscription/server removal; late sync cannot reactivate it.
++
++Worker endpoint requires a dedicated `x-push-secret`, has no caller payload/recipient API and keeps service/VAPID private keys server-side. Jobs use SKIP LOCKED plus leases and token-checked acknowledgements. Provider 404/410 removes expired subscriptions; network/429/5xx retries with bounded backoff (5 attempts). A matching notification tag reduces duplicates, but delivery is at-least-once: uncertain network acknowledgements can still cause duplicates. OS delivery is not guaranteed and Push is supplementary to the in-app inbox. Queue jobs expire after a day; this does not delete business notifications or PO records.
++
++## Release steps — only after deployment approval
++
++1. Recheck main, apply this feature without overwriting newer changes, and run all tests. Check remote migration versions and the SQL dry run. Apply `20261006071609_web_push_notifications.sql` to an isolated Supabase staging project first. Check advisors, RPC grants and RLS before production.
++2. Generate one stable VAPID key pair privately. Store `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` and a random high-entropy `PUSH_WORKER_SECRET` as Edge Function secrets. Subject must be a real `mailto:` or HTTPS contact; never use localhost. Only the public key goes into `dist/config.js` as `vapidPublicKey`. Do not commit private keys or secret values. Do not create a new VAPID pair on each deploy.
++3. Run Deno check and generate the function's deno.lock in an environment with npm registry access before release. The import is pinned to web-push 3.6.7. The local Deno dependency check was blocked by registry connection refusal, so native Edge runtime compatibility is still a release gate. Then deploy `push-worker` with `verify_jwt=false`; the handler checks the scheduler secret. Supabase provides the service role environment internally. Confirm unauthorized calls return 401 before testing authorized jobs.
++4. Enable pg_cron and pg_net, store scheduler secret in Vault as `po_push_worker_secret`, and create the job below. This is an operator template, not an automatically applied migration. Keep Vault access restricted. Review cron.job_run_details and net._http_response retention in the capacity review.
++5. Deploy frontend assets together, including sw.js, manifest and both PNG icons. Service worker scope must be `/`; ensure sw.js is JavaScript and manifest uses application/manifest+json. Add cache revalidation for sw.js at the host. Do not change Auth recovery URLs or public signup for this feature.
++6. Test on isolated staging: each event above; correct recipient; foreground/background/closed app; iOS installed app; Android; desktop; denied permission; reload; logout/account switch; expired endpoint; offline retries; disabled account; tap with expired login. Then approve the production release. After release, verify actual delivery on the user's devices before marking live Push complete.
++
++Scheduler template (no secret literals):
++
++```sql
++select cron.schedule('po-push-worker', '* * * * *', $job$
++ select net.http_post(
++  url := 'https://rhkilsnuqdkzwlncjvkj.supabase.co/functions/v1/push-worker',
++  headers := jsonb_build_object('Content-Type','application/json',
++   'x-push-secret',(select decrypted_secret from vault.decrypted_secrets where name='po_push_worker_secret')),
++  body := '{}'::jsonb,
++  timeout_milliseconds := 120000
++ );
++$job$);
++```
++
++Use the staging project URL for staging. Production template is PO-specific. Expected dispatch starts with the next scheduled minute; large bursts/retries can take longer. Scheduler activation is part of deployment and has not been performed.
++
++## Rollback
++
++Unschedule `po-push-worker`, disable Push controls by reverting the public key/frontend release and leave existing PO tables/data intact. Preserve the private VAPID key for a later resume. Existing canonical in-app notifications still work. Do not DROP business tables or restore production to test rollback.
++
++## References
++
++- https://webkit.org/blog/13878/web-push-for-web-apps-on-ios-and-ipados/
++- https://supabase.com/docs/guides/functions/schedule-functions
++- https://supabase.com/docs/guides/database/vault
++- https://github.com/web-push-libs/web-push
+diff --git a/README.md b/README.md
+index 5ebf109..415fe97 100644
+--- a/README.md
++++ b/README.md
+@@ -1,5 +1,7 @@
+ # PO The Grands
+ 
++> รุ่นพัฒนาวันที่ 6 ตุลาคม 2569: เพิ่มโค้ด Web Push แล้ว **ยังไม่ deploy** และยังไม่เปิดแจ้งเตือนบนเว็บจริง ดูขั้นตอนและขอบเขตที่ [PUSH-NOTIFICATIONS.md](PUSH-NOTIFICATIONS.md) ปุ่มเปิดแจ้งเตือนอยู่ในกระดิ่ง → “แจ้งเตือนบนเครื่องนี้” หลังเปิดใช้งานจริง ไม่ต้องกดอนุญาตซ้ำทุกครั้งที่เข้าเว็บ
++
+ ระบบเปิด อนุมัติ และติดตามใบขอซื้อ (PO) สำหรับทีมจัดซื้อของ The Grands ทำงานแยกจากระบบ Grandhouse ทั้งซอร์สโค้ด บัญชีผู้ใช้ ฐานข้อมูล และการเผยแพร่ เว็บสำหรับพัฒนาในเครื่องทำงานที่ [http://localhost:4180](http://localhost:4180)
+ 
+ > สถานะปัจจุบัน: deploy schema และ `manage-user` ไป Supabase project PO แล้ว; ทดสอบ owner/office, disabled login, session reload, Supabase refresh และ offline recovery แล้ว; เว็บหลักที่ผู้ใช้ deploy คือ [PO The Grands บน Vercel](https://po-thegrands.vercel.app/) ตรวจไฟล์และ assets แล้วตรงกับ `dist/` ใน repo; เว็บ Sites เดิมยังคงเป็นรุ่นก่อนหน้าแบบ owner-only
+diff --git a/UX-CONTRACT.md b/UX-CONTRACT.md
+index 4cf53d7..79c2e14 100644
+--- a/UX-CONTRACT.md
++++ b/UX-CONTRACT.md
+@@ -1,5 +1,9 @@
+ # PO The Grands UX contract
+ 
++## Web Push (unreleased)
++
++Source: user approval 2026-10-06 and PUSH-NOTIFICATIONS.md. `dist/push.js` owns device registration/permission lifecycle; `pushSettings()` extends existing openModal(), withPending(), notify() and inline-error behavior. The existing bell/inbox owns access to the device settings. Show unsupported, not configured, denied, off, enabled and failure states. No permission prompt on login/reload. Account switch first removes the old binding/subscription and returns to login only after successful cleanup. Push deep links use the existing detail service and access checks, preserving the PO link across login. Keep the current responsive shell and design tokens.
++
+ Business authority: PRODUCT.md (2026-09-25 explicit user request). Supabase setup and storage contracts: SUPABASE-SETUP.md and supabase/migrations/20260929000000_initial_po_schema.sql. New independent app, no sibling legacy workflow to inherit.
+ 
+ ## Canonical UI Map
+diff --git a/VERIFICATION.md b/VERIFICATION.md
+index a69e676..67e3185 100644
+--- a/VERIFICATION.md
++++ b/VERIFICATION.md
+@@ -1,5 +1,17 @@
+ # ผลตรวจ PO The Grands — อัปเดต 1 ตุลาคม 2026
+ 
++## Web Push development — 6 October 2026 (not deployed)
++
++- Verified GitHub branch main and tree/commit `5d5eb44f8b1ea9658f58096b8ad0fa201ad7eeab`. Fetched the changed source/docs from that main; compared unchanged source, migrations, functions and tests by Git blob hash. Preserved pre-existing dirty PO/PO-current worktrees; feature lives separately in PO-push-preview. No HR changes.
++- Added explicit device permission/settings, standalone manifest, service worker with no caches, safe PO deep link, authenticated registration/removal, transactional notification outbox and scheduled worker.
++- Push client/worker/service-worker/handler tests use mocks. Database tests run the actual SQL in isolated PGlite, testing active-user/anon denial, endpoint ownership, recipient routing, rollback, event idempotency, leases and expired subscription cleanup.
++- Actual app jsdom checks pass: original sidebar labels preserved; settings reachable from bell; five permission/config states; enable/disable success and inline error/retry. This is DOM behavior, not real browser layout or native permission/Push delivery proof.
++- Strict UI audit passes with no findings. No CSS/layout changes. Syntax checks pass.
++- Final automated run: npm test 112/112 passing; npm run check passing. Push-specific tests account for 25 checks including nested SQL cases. No native device delivery is claimed.
++- Deno 2.9.6 installed for checking. Initial check required explicit nodeModulesDir; configured none. Subsequent dependency loading failed with connection refusal to registry.npmjs.org/web-push. Deno import/type compatibility, lockfile generation and hosted Edge runtime verification remain pending; no successful Deno check is claimed.
++- Reviewed Supabase changelog.md (6 October), including recent Postgres minor/security changes and framework adapter deprecation; this code uses neither adapters nor extensions affected by those entries. Checked scheduling/Vault and WebKit Web Push docs.
++- No production database writes, key generation, worker/cron deployment, Vercel deployment or GitHub commit was performed. An auto-deploy branch must not receive this feature before deployment approval. Actual iOS/Android/desktop delivery and current hosted SQL advisor check are release gates in PUSH-NOTIFICATIONS.md.
++
+ ## อัตโนมัติ
+ 
+ - `npm test`: 21/21 ผ่านใน PGlite และ mock REST
+diff --git a/dist/api.js b/dist/api.js
+index 5223b44..d3edd1e 100644
+--- a/dist/api.js
++++ b/dist/api.js
+@@ -8,6 +8,8 @@ function saveSession(data){const next={...data,expires_at:data.expires_at||Date.
+ async function request(path,{method='GET',body,auth=true,headers={},timeoutMs=15000}={}){if(auth&&session&&Date.now()/1000>session.expires_at-60)await refresh();let response;try{response=await fetch(config.supabaseUrl.replace(/\/$/,'')+path,{method,headers:{apikey:config.publishableKey,...(auth&&session?{Authorization:`Bearer ${session.access_token}`} :{}),'Content-Type':'application/json',...headers},body:body===undefined?undefined:JSON.stringify(body),signal:AbortSignal.timeout(timeoutMs)});}catch{throw Error(path.startsWith('/auth/')?'เชื่อมต่อเพื่อเข้าสู่ระบบไม่ได้หรือหมดเวลารอ กรุณาลองเข้าสู่ระบบอีกครั้ง':'เชื่อมต่อไม่ได้หรือหมดเวลารอ กรุณาลองอีกครั้งด้วยคำขอเดิมเพื่อป้องกันรายการซ้ำ');}const data=await response.json().catch(()=>null);if(!response.ok){if((response.status===401&&auth)||(path.includes('grant_type=refresh_token')&&response.status===400)){clearSession();throw Object.assign(Error('หมดเวลาเข้าสู่ระบบ กรุณาเข้าสู่ระบบอีกครั้ง ข้อมูลที่กรอกยังอยู่'),{authExpired:true});}throw Error(data?.message||data?.msg||data?.error_description||'บันทึกไม่ได้ กรุณาลองอีกครั้ง');}return {data,response};}
+ async function refresh(){if(!session)throw Error('กรุณาเข้าสู่ระบบ');if(!refreshPromise)refreshPromise=request('/auth/v1/token?grant_type=refresh_token',{method:'POST',auth:false,body:{refresh_token:session.refresh_token}}).then(r=>saveSession(r.data)).finally(()=>{refreshPromise=null;});await refreshPromise;}
+ export const api={
++ async registerPush(subscription){return (await request('/rest/v1/rpc/register_push',{method:'POST',body:{p_endpoint:subscription.endpoint,p_p256dh:subscription.keys?.p256dh,p_auth:subscription.keys?.auth}})).data;},
++ async unregisterPush(endpoint){return request('/rest/v1/rpc/unregister_push',{method:'POST',body:{p_endpoint:endpoint}});},
+  async login(username,password){const entered=String(username||'').trim().toLowerCase();const options=entered.includes('@')?{path:'/auth/v1/token?grant_type=password',body:{email:entered,password}}:{path:'/functions/v1/owner-account',body:{action:'login',username:entered,password}};const {data}=await request(options.path,{method:'POST',auth:false,body:options.body,timeoutMs:45000});saveSession(data);const p=await request('/rest/v1/profiles?id=eq.'+encodeURIComponent(data.user.id)+'&select=id,role,display_name,login_email,login_name,can_export_report',{timeoutMs:45000});if(!p.data?.length){clearSession();throw Error('บัญชีนี้ยังไม่ได้รับสิทธิ์ใช้งาน กรุณาติดต่อเจ้าของ');}profile=p.data[0];return profile;},
+  async updateOwnerLoginName({username,currentPassword}){const {data}=await request('/functions/v1/owner-account',{method:'POST',body:{action:'update-login-name',username,currentPassword},timeoutMs:45000});profile={...profile,...data.user};return profile;},
+  async changeOwnerPassword({currentPassword,newPassword}){const {data}=await request('/functions/v1/owner-account',{method:'POST',body:{action:'change-password',currentPassword,newPassword},timeoutMs:45000});clearSession();return data;},
+diff --git a/dist/app.js b/dist/app.js
+index b70d4e5..db4ec20 100644
+--- a/dist/app.js
++++ b/dist/app.js
+@@ -1,8 +1,22 @@
+ import {navigatePOForm} from './form-navigation.js';
++import {config} from './config.js';
++import {createPushClient} from './push.js';
+ import {statuses,actionLabels,paymentLabels,money,date,poDate,monthLabel,todayBangkok,validateItems,validatePODate,totals,summarizeMonth,vatBase} from './domain.js';
+ import {configured,api,demoAuth,makeDemo} from './api.js';
+ import {exportMonthlyExcel} from './export.js';
+ const app=document.querySelector('#app'),modal=document.querySelector('#modal'),demo=makeDemo();
++const push=createPushClient({api,publicKey:configured?config.vapidPublicKey:''});
++let pushSyncedActor=null;
++async function pushSettings(){
++ openModal('แจ้งเตือนบนเครื่องนี้','<p id="push-status" role="status">กำลังตรวจการแจ้งเตือน…</p><div id="push-error" role="alert"></div><div class="actions"><button data-cancel>ปิด</button><button id="push-enable" class="primary" disabled>เปิดแจ้งเตือน</button><button id="push-disable" disabled>ปิดแจ้งเตือน</button></div>');
++ try{const status=await push.status();if(!document.querySelector('#push-status'))return;
++ const messages={unsupported:'บน iPhone/iPad ให้เพิ่ม PO ลงหน้าจอโฮม แล้วเปิดจากไอคอน PO หากยังเปิดไม่ได้ ให้ตรวจรุ่น iOS และสิทธิ์แจ้งเตือน',unconfigured:'ระบบแจ้งเตือนบนเครื่องยังไม่เปิดใช้งาน',denied:'ปิดสิทธิ์แจ้งเตือนไว้ กรุณาเปิดสิทธิ์ในการตั้งค่าเครื่อง แล้วกลับมาลองใหม่',enabled:'เปิดแจ้งเตือนบนเครื่องนี้แล้ว ไม่ต้องเปิดใหม่ทุกครั้งที่เข้าเว็บ',off:'เปิดเพื่อรับแจ้งเตือนเมื่อใบ PO มีการอัปเดต'};
++ document.querySelector('#push-status').textContent=messages[status];
++ const enable=document.querySelector('#push-enable'),disable=document.querySelector('#push-disable');enable.disabled=status!=='off';disable.disabled=status!=='enabled';
++ enable.onclick=()=>withPending(enable,async()=>{await push.enable();pushSyncedActor=actor?.id;notify('เปิดแจ้งเตือนแล้ว');await pushSettings();},document.querySelector('#push-error'));
++ disable.onclick=()=>withPending(disable,async()=>{await push.disable();pushSyncedActor=null;notify('ปิดแจ้งเตือนแล้ว');await pushSettings();},document.querySelector('#push-error'));
++ }catch{document.querySelector('#push-error')?.replaceChildren('ตรวจแจ้งเตือนไม่สำเร็จ กรุณาปิดหน้านี้แล้วลองใหม่');}
++}
+ const recoveryEntry=(()=>{const url=new URL(location.href),fragment=new URLSearchParams(url.hash.slice(1)),callback=configured&&(fragment.get('type')==='recovery'||url.searchParams.get('view')==='recovery'||['error','error_code','error_description'].some(key=>fragment.has(key)||url.searchParams.has(key)));const hash=callback?url.hash:'';if(callback){url.hash='';for(const key of ['view','error','error_code','error_description','type','access_token','refresh_token','expires_in','expires_at','token_type'])url.searchParams.delete(key);history.replaceState({},'',url);}return {callback,hash};})();
+ const recoveryCallback=recoveryEntry.callback;
+ let service=configured?api:demo,actor=null,route='login',draft=null,detail=null,pending=false,loadSequence=0,toastTimer,activeReport=null,editingUser=null,userRecords=[],remoteNotifications=[];
+@@ -30,7 +44,7 @@ function myNotifications(){return configured?remoteNotifications:allNotification
+ function addWorkflowNotification(po,action,sourceActor){const copy={create:['มีใบขอซื้อใหม่',`${sourceActor.display_name} เปิด ${po.po_number}`],approve:['ใบขอซื้อได้รับอนุมัติ',`${po.po_number} ได้รับอนุมัติแล้ว`],reject:['ใบขอซื้อไม่อนุมัติ',`${po.po_number} ไม่ได้รับอนุมัติ`],receive:['ได้รับสินค้าแล้ว',`${sourceActor.display_name} ยืนยันรับสินค้า ${po.po_number}`],close:['ปิดใบ PO แล้ว',`${po.po_number} ตรวจรับเอกสารและปิดแล้ว`]}[action];if(!copy)return;const rows=allNotifications(),event_key=`${po.id}:${action}:${po.version||1}`;if(rows.some(n=>n.event_key===event_key))return;rows.unshift({id:crypto.randomUUID(),event_key,po_id:po.id,recipient_role:['create','receive'].includes(action)?'owner':'office',recipient_id:['create','receive'].includes(action)?null:po.created_by,title:copy[0],message:copy[1],action,created_at:new Date().toISOString(),read_at:null});localStorage.setItem(notificationKey,JSON.stringify(rows.slice(0,100)));}
+ function notificationButton(){const unread=myNotifications().filter(n=>!n.read_at).length;return `<button type="button" class="notification-button" data-action="notifications" aria-label="การแจ้งเตือน${unread?`ที่ยังไม่ได้อ่าน ${unread} รายการ`:''}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>${unread?`<span>${unread}</span>`:''}</button>`;}
+ async function refreshNotifications(){if(!configured||!actor)return;try{remoteNotifications=await service.notifications();const old=document.querySelector('.notification-button');if(old)old.outerHTML=notificationButton();}catch{}}
+-async function openNotifications(){const rows=myNotifications();openModal('การแจ้งเตือน',`<div class="notification-list">${rows.map(n=>`<button type="button" class="notification-item ${n.read_at?'':'unread'}" data-notification-po="${n.po_id}"><strong>${esc(n.title)}</strong><span>${esc(n.message)}</span><small>${date(n.created_at)}</small></button>`).join('')||'<div class="empty"><p>ยังไม่มีการแจ้งเตือน</p></div>'}</div><div class="actions"><button type="button" data-cancel>ปิด</button></div>`);if(configured){await service.markNotificationsRead();remoteNotifications=rows.map(n=>({...n,read_at:n.read_at||new Date().toISOString()}));}else{const all=allNotifications(),ids=new Set(rows.map(n=>n.id)),now=new Date().toISOString();for(const n of all)if(ids.has(n.id)&&!n.read_at)n.read_at=now;localStorage.setItem(notificationKey,JSON.stringify(all));}document.querySelector('.notification-button span')?.remove();}
++async function openNotifications(){const rows=myNotifications();openModal('การแจ้งเตือน',`${configured?'<p><button type="button" data-push-settings class="primary">แจ้งเตือนบนเครื่องนี้</button></p>':''}<div class="notification-list">${rows.map(n=>`<button type="button" class="notification-item ${n.read_at?'':'unread'}" data-notification-po="${n.po_id}"><strong>${esc(n.title)}</strong><span>${esc(n.message)}</span><small>${date(n.created_at)}</small></button>`).join('')||'<div class="empty"><p>ยังไม่มีการแจ้งเตือน</p></div>'}</div><div class="actions"><button type="button" data-cancel>ปิด</button></div>`);if(configured){await service.markNotificationsRead();remoteNotifications=rows.map(n=>({...n,read_at:n.read_at||new Date().toISOString()}));}else{const all=allNotifications(),ids=new Set(rows.map(n=>n.id)),now=new Date().toISOString();for(const n of all)if(ids.has(n.id)&&!n.read_at)n.read_at=now;localStorage.setItem(notificationKey,JSON.stringify(all));}document.querySelector('.notification-button span')?.remove();}
+ function navButton(go,label){return `<button data-go="${go}" class="${route===go?'selected':''}">${label}</button>`;}
+ function shell(body){window.scrollTo(0,0);app.innerHTML=`<div class="shell route-${route}"><aside class="sidebar"><div><div class="logo"><img src="favicon.svg?v=20260927-3" alt=""><span class="brand-name">PO The <span class="brand-last">Grands</span></span></div><div class="side-caption">PURCHASE ORDER WORKSPACE</div></div><nav class="nav" aria-label="เมนูหลัก">${navButton('list','▤ &nbsp; ใบขอซื้อทั้งหมด')}${actor.role==='office'?navButton('create','＋ &nbsp; เปิดใบ PO'):''}${actor.role==='office'?navButton('departments','▥ &nbsp; แผนก/สาขา'):''}${actor.role==='office'?navButton('report','▦ &nbsp; สรุปรายเดือน'):''}${actor.role==='owner'?navButton('users','♙ &nbsp; ผู้ใช้งาน'):''}${configured&&actor.role==='owner'?navButton('account','⚙ &nbsp; บัญชีของฉัน'):''}</nav></aside><main class="main"><header class="topbar"><span>พื้นที่ทำงาน / ใบขอซื้อ</span><div class="identity"><span class="avatar" aria-hidden="true">${actor.role==='owner'?'♛':'♙'}</span><strong>${esc(actor.display_name)}</strong><button data-action="logout" class="ghost"><span class="account-switch-label">เปลี่ยนบัญชี<span class="account-switch-last">ผู้ใช้งาน</span></span></button></div></header><div class="content">${!configured?'<div class="demo-banner"><span><strong>ระบบทดลอง</strong> · ข้อมูล PO จะเริ่มใหม่เมื่อรีโหลดหน้า ส่วนบัญชีทดลองเก็บเฉพาะเครื่องนี้</span><button data-go="setup">ดูการเชื่อมต่อ</button></div>':''}${body}</div></main></div>`;document.title=({list:'ใบขอซื้อ',create:'เปิดใบ PO',review:'ตรวจทานใบ PO',detail:detail?.po_number||'รายละเอียด',report:'สรุปรายเดือน',users:'ผู้ใช้งาน',account:'บัญชีของฉัน',setup:'การเชื่อมต่อ'}[route]||'เข้าสู่ระบบ')+' — PO The Grands';}
+ function showError(e,target=document.querySelector('#page-error')){if(target){target.innerHTML=`<div class="error" role="alert">${esc(e.message||e)}${e.authExpired?' <button data-action="reauth">เข้าสู่ระบบอีกครั้ง</button>':''}</div>`;target.scrollIntoView({block:'nearest'});}else notify(e.message||String(e));}
+@@ -53,7 +67,7 @@ function resetOwnerRecovery(){
+  document.querySelector('#owner-recovery-reset-form').onsubmit=async e=>{e.preventDefault();const password=document.querySelector('#recovery-new-password'),confirm=document.querySelector('#recovery-confirm-password');if(password.value.length<6)return errorField(password,'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร');if(password.value!==confirm.value)return errorField(confirm,'รหัสผ่านทั้งสองช่องไม่ตรงกัน');await withPending(e.submitter,async()=>{await api.resetOwnerRecovery(password.value);password.value='';confirm.value='';api.cancelOwnerRecovery();login();notify('บันทึกรหัสผ่านใหม่แล้ว กรุณาเข้าสู่ระบบด้วยรหัสใหม่');});};
+ }
+ async function beginOwnerRecovery(){recoveryShell('<h1>กำลังตรวจสอบลิงก์</h1><p role="status">กำลังตรวจสอบลิงก์ตั้งรหัสผ่านใหม่…</p>');try{const validation=api.beginOwnerRecovery(recoveryEntry.hash);recoveryEntry.hash='';if(await validation)resetOwnerRecovery();else invalidOwnerRecovery();}catch{recoveryEntry.hash='';invalidOwnerRecovery();}}
+-function login(reauth=false){route='login';++loadSequence;app.innerHTML=`<main class="login"><div class="logo"><img src="favicon.svg?v=20260927-3" alt="">PO The Grands</div><section class="panel"><div class="eyebrow">SECURE ACCESS</div><h1>เข้าสู่ระบบ</h1><p class="muted">ใช้งานด้วยบัญชีที่เจ้าของกำหนดให้</p><form id="login-form" novalidate><div id="page-error"></div>${field('username',configured?'ชื่อผู้ใช้ หรืออีเมลเจ้าของ':'ชื่อผู้ใช้','','text','autocomplete="username"')}${passwordControl('password','รหัสผ่าน')}<button type="submit" class="primary wide">เข้าสู่ระบบ</button></form>${configured?'<button type="button" class="ghost wide" data-action="owner-recovery-request">ลืมรหัสผ่านเจ้าของ?</button>':''}${!configured?'<p class="form-note">ครั้งแรกให้เจ้าของเข้าสู่ระบบ แล้วเปิดเมนู “ผู้ใช้งาน” เพื่อกำหนดบัญชีและรหัสผ่านให้ออฟฟิศ</p><button type="button" class="ghost wide" data-action="reset-owner">ลืมรหัสเจ้าของ? ตั้งใหม่ในโหมดทดลอง</button>':''}</section></main>`;document.title='เข้าสู่ระบบ — PO The Grands';bindPasswordToggles();document.querySelector('#login-form').onsubmit=async e=>{e.preventDefault();const username=document.querySelector('#username'),password=document.querySelector('#password');if(!username.value.trim()){errorField(username,configured?'กรอกชื่อผู้ใช้ หรืออีเมลเจ้าของ':'กรอกชื่อผู้ใช้');return;}if(!password.value){errorField(password,'กรอกรหัสผ่าน');return;}await withPending(e.submitter,async()=>{const oldId=actor?.id,next=configured?await api.login(username.value.trim(),password.value):await demoAuth.login(username.value,password.value);actor=next;if(reauth&&oldId!==next.id)draft=null;if(reauth&&draft&&next.role==='office')renderCreate();else await renderList();});};}
++function login(reauth=false){route='login';++loadSequence;app.innerHTML=`<main class="login"><div class="logo"><img src="favicon.svg?v=20260927-3" alt="">PO The Grands</div><section class="panel"><div class="eyebrow">SECURE ACCESS</div><h1>เข้าสู่ระบบ</h1><p class="muted">ใช้งานด้วยบัญชีที่เจ้าของกำหนดให้</p><form id="login-form" novalidate><div id="page-error"></div>${field('username',configured?'ชื่อผู้ใช้ หรืออีเมลเจ้าของ':'ชื่อผู้ใช้','','text','autocomplete="username"')}${passwordControl('password','รหัสผ่าน')}<button type="submit" class="primary wide">เข้าสู่ระบบ</button></form>${configured?'<button type="button" class="ghost wide" data-action="owner-recovery-request">ลืมรหัสผ่านเจ้าของ?</button>':''}${!configured?'<p class="form-note">ครั้งแรกให้เจ้าของเข้าสู่ระบบ แล้วเปิดเมนู “ผู้ใช้งาน” เพื่อกำหนดบัญชีและรหัสผ่านให้ออฟฟิศ</p><button type="button" class="ghost wide" data-action="reset-owner">ลืมรหัสเจ้าของ? ตั้งใหม่ในโหมดทดลอง</button>':''}</section></main>`;document.title='เข้าสู่ระบบ — PO The Grands';bindPasswordToggles();document.querySelector('#login-form').onsubmit=async e=>{e.preventDefault();const username=document.querySelector('#username'),password=document.querySelector('#password');if(!username.value.trim()){errorField(username,configured?'กรอกชื่อผู้ใช้ หรืออีเมลเจ้าของ':'กรอกชื่อผู้ใช้');return;}if(!password.value){errorField(password,'กรอกรหัสผ่าน');return;}await withPending(e.submitter,async()=>{const oldId=actor?.id,next=configured?await api.login(username.value.trim(),password.value):await demoAuth.login(username.value,password.value);actor=next;if(reauth&&oldId!==next.id)draft=null;if(reauth&&draft&&next.role==='office')renderCreate();else await renderEntry();});};}
+ function getFilter(){const s=new URLSearchParams(location.search).get('status')||'';return s in statuses?s:'';}
+ function getPage(){return Math.max(1,Math.floor(Number(new URLSearchParams(location.search).get('page'))||1));}
+ function getScope(){if(actor?.role!=='office')return'all';if(!actor.can_export_report)return'mine';return new URLSearchParams(location.search).get('scope')==='mine'?'mine':'all';}
+@@ -124,12 +138,12 @@ document.addEventListener('input',e=>{const el=e.target;if(el.dataset.headerKey&
+ document.addEventListener('click',e=>{const b=e.target.closest('[data-action="reset-owner"],[data-action="back-login"]');if(!b)return;if(b.dataset.action==='reset-owner'&&!configured)resetOwner();if(b.dataset.action==='back-login')login();});
+ document.addEventListener('submit',e=>{if(!configured&&route==='users'&&editingUser){const pass=document.querySelector('#new-password');if(pass&&!pass.value)pass.value='__KEEP__';}},true);
+ document.addEventListener('click',e=>{const b=e.target.closest('[data-user-edit]');if(!b||route!=='users')return;const user=userRecords[Number(b.dataset.userEdit)],id=document.querySelector('#account-id'),display=document.querySelector('#display-name'),pass=document.querySelector('#new-password');if(!user||!id||!display||!pass)return;editingUser=user;id.value=user.login_name||user.username||user.login_email;display.value=user.display_name;pass.value='';id.readOnly=false;id.removeAttribute('aria-readonly');let cancel=document.querySelector('[data-user-cancel]');if(!cancel){cancel=document.createElement('button');cancel.type='button';cancel.dataset.userCancel='';cancel.textContent='ยกเลิกแก้ไข';cancel.onclick=()=>{editingUser=null;id.value='';display.value='';pass.value='';id.readOnly=false;cancel.remove();const title=document.querySelector('#user-form-title');if(title)title.textContent='เพิ่มหรือเปลี่ยนรหัสผ่าน';};document.querySelector('#user-form').insertBefore(cancel,document.querySelector('#user-form button[type="submit"]'));}const title=document.querySelector('#user-form-title');if(title)title.textContent='แก้ไขบัญชีออฟฟิศ';display.focus();});
+-document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b||b.disabled||pending)return;if(b.dataset.go)return go(b.dataset.go);if('scope' in b.dataset)return setListState(getFilter(),1,b.dataset.scope);if('filter' in b.dataset)return setListState(b.dataset.filter,1);if(b.dataset.page)return setListState(getFilter(),Number(b.dataset.page));if(b.dataset.detail)return renderDetail(b.dataset.detail);if(b.dataset.command)return command(b.dataset.command);if('departmentDelete' in b.dataset){const list=await departments(),index=Number(b.dataset.departmentDelete),name=list[index];if(name){openModal('เก็บแผนก/สาขาเข้าคลัง?',`<p><strong>${esc(name)}</strong> จะไม่แสดงให้เลือกในใบ PO ใหม่ ประวัติใบเดิมยังอยู่</p><div id="modal-error"></div><div class="actions"><button data-cancel autofocus>กลับ</button><button id="archive-department" class="danger">เก็บเข้าคลัง</button></div>`);document.querySelector('#archive-department').onclick=async()=>{await withPending(document.querySelector('#archive-department'),async()=>{if(configured)await service.archiveDepartment(name);else localStorage.setItem('po-the-grands-demo-departments-v1',JSON.stringify(list.filter((_,i)=>i!==index)));modal.close();await renderDepartments();notify('เก็บแผนก/สาขาเข้าคลังแล้ว');},document.querySelector('#modal-error'));};}return;}if('remove' in b.dataset){draft.items.splice(Number(b.dataset.remove),1);draft.dirty=true;draft.key=crypto.randomUUID();renderCreate();return;}if(b.dataset.reveal)return;switch(b.dataset.action){case 'add':draft.items.push(blank());draft.dirty=true;draft.key=crypto.randomUUID();await renderCreate();document.querySelector('#name-'+(draft.items.length-1))?.focus();break;case 'edit':renderCreate();break;case 'refresh':renderList({preserveShell:true});break;case 'submit':await withPending(b,async()=>{if(configured)await service.create(draft.validated,draft.po_date,draft.key,draft.department);else await service.create(draft.validated,draft.po_date,draft.key,actor,draft.department);draft=null;await setListState('',1);notify('เปิดใบ PO แล้ว รอเจ้าของอนุมัติ');});break;case 'retry-report':renderReport(document.querySelector('#report-month')?.value||activeReport?.month||todayBangkok().slice(0,7));break;case 'export':await withPending(b,async()=>{await exportMonthlyExcel(activeReport,activeReport.month);notify('สร้างไฟล์ Excel แล้ว');});break;case 'logout':openModal('เปลี่ยนบัญชีผู้ใช้งาน?',`<p>ระบบจะออกจากบัญชี ${esc(actor.display_name)} แล้วกลับไปหน้าเข้าสู่ระบบ</p><div class="actions"><button data-cancel autofocus>กลับ</button><button id="logout-confirm" class="primary">ออกจากระบบ</button></div>`);document.querySelector('#logout-confirm').onclick=async()=>{try{if(configured)await api.logout();}finally{draft=null;actor=null;modal.close();login();}};break;case 'reauth':if(modal.open)modal.close();login(true);break;}});
++document.addEventListener('click',async e=>{const b=e.target.closest('button');if(!b||b.disabled||pending)return;if(b.dataset.go)return go(b.dataset.go);if('scope' in b.dataset)return setListState(getFilter(),1,b.dataset.scope);if('filter' in b.dataset)return setListState(b.dataset.filter,1);if(b.dataset.page)return setListState(getFilter(),Number(b.dataset.page));if(b.dataset.detail)return renderDetail(b.dataset.detail);if(b.dataset.command)return command(b.dataset.command);if('departmentDelete' in b.dataset){const list=await departments(),index=Number(b.dataset.departmentDelete),name=list[index];if(name){openModal('เก็บแผนก/สาขาเข้าคลัง?',`<p><strong>${esc(name)}</strong> จะไม่แสดงให้เลือกในใบ PO ใหม่ ประวัติใบเดิมยังอยู่</p><div id="modal-error"></div><div class="actions"><button data-cancel autofocus>กลับ</button><button id="archive-department" class="danger">เก็บเข้าคลัง</button></div>`);document.querySelector('#archive-department').onclick=async()=>{await withPending(document.querySelector('#archive-department'),async()=>{if(configured)await service.archiveDepartment(name);else localStorage.setItem('po-the-grands-demo-departments-v1',JSON.stringify(list.filter((_,i)=>i!==index)));modal.close();await renderDepartments();notify('เก็บแผนก/สาขาเข้าคลังแล้ว');},document.querySelector('#modal-error'));};}return;}if('remove' in b.dataset){draft.items.splice(Number(b.dataset.remove),1);draft.dirty=true;draft.key=crypto.randomUUID();renderCreate();return;}if(b.dataset.reveal)return;switch(b.dataset.action){case 'add':draft.items.push(blank());draft.dirty=true;draft.key=crypto.randomUUID();await renderCreate();document.querySelector('#name-'+(draft.items.length-1))?.focus();break;case 'edit':renderCreate();break;case 'refresh':renderList({preserveShell:true});break;case 'submit':await withPending(b,async()=>{if(configured)await service.create(draft.validated,draft.po_date,draft.key,draft.department);else await service.create(draft.validated,draft.po_date,draft.key,actor,draft.department);draft=null;await setListState('',1);notify('เปิดใบ PO แล้ว รอเจ้าของอนุมัติ');});break;case 'retry-report':renderReport(document.querySelector('#report-month')?.value||activeReport?.month||todayBangkok().slice(0,7));break;case 'export':await withPending(b,async()=>{await exportMonthlyExcel(activeReport,activeReport.month);notify('สร้างไฟล์ Excel แล้ว');});break;case 'logout':openModal('เปลี่ยนบัญชีผู้ใช้งาน?',`<p>ระบบจะออกจากบัญชี ${esc(actor.display_name)} แล้วกลับไปหน้าเข้าสู่ระบบ</p><div id="logout-error" role="alert"></div><div class="actions"><button data-cancel autofocus>กลับ</button><button id="logout-confirm" class="primary">ออกจากระบบ</button></div>`);document.querySelector('#logout-confirm').onclick=()=>withPending(document.querySelector('#logout-confirm'),async()=>{if(configured){await push.disable();pushSyncedActor=null;}try{if(configured)await api.logout();}finally{draft=null;actor=null;modal.close();login();}},document.querySelector('#logout-error'));break;case 'reauth':if(modal.open)modal.close();login(true);break;}});
+ window.addEventListener('beforeunload',e=>{if(draft?.dirty||ownerAccountDirty()){e.preventDefault();e.returnValue='';}});
+ window.addEventListener('popstate',()=>{if(actor&&route==='list')renderList();});
+ if(document.modelContext?.registerTool){try{Promise.resolve(document.modelContext.registerTool({name:'read_visible_purchase_orders',title:'อ่านใบ PO หน้าที่แสดง',description:'Read the current purchase-order page with the same account permissions. Does not change records.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true,untrustedContentHint:true},execute:async input=>{if(!input||Object.keys(input).length)throw Error('ไม่รับพารามิเตอร์');if(!actor)throw Error('กรุณาเข้าสู่ระบบ');return service.list(getFilter(),getPage(),getScope());}})).catch(()=>{});}catch{}}
+ const baseShell=shell;
+-shell=function(body){baseShell(body);document.querySelector('.demo-banner')?.remove();const root=document.querySelector('.shell'),sidebar=document.querySelector('.sidebar>div:first-child'),identity=document.querySelector('.identity'),topbar=document.querySelector('.topbar');root?.classList.add(`role-${actor.role}`);if(identity&&sidebar){identity.classList.add('sidebar-identity');sidebar.append(identity);}topbar?.insertAdjacentHTML('beforeend',notificationButton());const departmentNav=document.querySelector('[data-go="departments"]');if(departmentNav)departmentNav.innerHTML='<svg class="nav-pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6-6.2-6-11a6 6 0 1 1 12 0c0 4.8-6 11-6 11Z"/><circle cx="12" cy="10" r="2"/></svg><span>แผนก/สาขา</span>';if(actor.role==='office'&&!actor.can_export_report){document.querySelector('[data-go="report"]')?.remove();document.querySelector('[data-go="departments"]')?.remove();}if(actor.role==='owner'&&route==='list')document.querySelector('.page-head')?.remove();refreshNotifications();};
++shell=function(body){baseShell(body);document.querySelector('.demo-banner')?.remove();const root=document.querySelector('.shell'),sidebar=document.querySelector('.sidebar>div:first-child'),identity=document.querySelector('.identity'),topbar=document.querySelector('.topbar');root?.classList.add(`role-${actor.role}`);if(identity&&sidebar){identity.classList.add('sidebar-identity');sidebar.append(identity);}topbar?.insertAdjacentHTML('beforeend',notificationButton());if(configured&&actor&&pushSyncedActor!==actor.id){pushSyncedActor=actor.id;void push.sync().catch(()=>{pushSyncedActor=null;});}const departmentNav=document.querySelector('[data-go="departments"]');if(departmentNav)departmentNav.innerHTML='<svg class="nav-pin" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6-6.2-6-11a6 6 0 1 1 12 0c0 4.8-6 11-6 11Z"/><circle cx="12" cy="10" r="2"/></svg><span>แผนก/สาขา</span>';if(actor.role==='office'&&!actor.can_export_report){document.querySelector('[data-go="report"]')?.remove();document.querySelector('[data-go="departments"]')?.remove();}if(actor.role==='owner'&&route==='list')document.querySelector('.page-head')?.remove();refreshNotifications();};
+ const saveOfficeWithPermission=service.saveOffice.bind(service);
+ service.saveOffice=(account,...args)=>saveOfficeWithPermission({...account,can_export_report:document.querySelector('#can-export-report')?.checked===true},...args);
+ const baseRenderUsers=renderUsers;
+@@ -151,12 +165,12 @@ function renderOwnerAccount(){
+   if(!current.value)return errorField(current,'กรอกรหัสผ่านปัจจุบันเพื่อยืนยัน');
+   if(password.value.length<6)return errorField(password,'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร');
+   if(password.value!==confirm.value)return errorField(confirm,'รหัสผ่านทั้งสองช่องไม่ตรงกัน');
+-  await withPending(e.submitter,async()=>{await service.changeOwnerPassword({currentPassword:current.value,newPassword:password.value});current.value='';password.value='';confirm.value='';document.querySelector('#owner-password-error').replaceChildren();actor=null;login();notify('บันทึกรหัสผ่านใหม่แล้ว กรุณาเข้าสู่ระบบด้วยรหัสใหม่');},document.querySelector('#owner-password-error'));
++  await withPending(e.submitter,async()=>{await push.disable();pushSyncedActor=null;await service.changeOwnerPassword({currentPassword:current.value,newPassword:password.value});current.value='';password.value='';confirm.value='';document.querySelector('#owner-password-error').replaceChildren();actor=null;login();notify('บันทึกรหัสผ่านใหม่แล้ว กรุณาเข้าสู่ระบบด้วยรหัสใหม่');},document.querySelector('#owner-password-error'));
+  };
+ }
+ const baseGo=go;
+ go=function(next){if(pending)return;if(route==='account'&&next!==route&&ownerAccountDirty()){openModal('ออกจากบัญชีที่ยังไม่บันทึก?',`<p>ชื่อหรือรหัสผ่านที่กรอกยังไม่ถูกบันทึก ออกจากหน้านี้จะล้างข้อมูลที่กรอก</p><div class="actions"><button data-cancel autofocus>กรอกต่อ</button><button id="discard-account" class="danger">ทิ้งข้อมูลและออก</button></div>`);document.querySelector('#discard-account').onclick=()=>{document.querySelectorAll('.route-account input').forEach(input=>input.value='');route='account-discarded';modal.close();go(next);};return;}if(next==='account'&&configured&&actor?.role==='owner'){const url=new URL(location.href);url.searchParams.set('view','account');history.replaceState({},'',url);return renderOwnerAccount();}const url=new URL(location.href);url.searchParams.delete('view');history.replaceState({},'',url);if(next==='report'&&actor?.role==='office'&&!actor.can_export_report){notify('บัญชีนี้ไม่มีสิทธิ์ดูรายงานรวม');return;}return baseGo(next);};
+-if(recoveryCallback)beginOwnerRecovery();else if(!configured&&demoAuth.needsSetup())renderOwnerSetup();else if(configured){app.innerHTML='<main class="login"><section class="panel" role="status">กำลังตรวจสอบ session…</section></main>';api.restoreSession().then(restored=>{if(restored){actor=restored;if(new URLSearchParams(location.search).get('view')==='account'&&actor.role==='owner')renderOwnerAccount();else renderList();}else login();}).catch(error=>{login();showError(error);});}else login();
++if(recoveryCallback)beginOwnerRecovery();else if(!configured&&demoAuth.needsSetup())renderOwnerSetup();else if(configured){app.innerHTML='<main class="login"><section class="panel" role="status">กำลังตรวจสอบ session…</section></main>';api.restoreSession().then(restored=>{if(restored){actor=restored;if(new URLSearchParams(location.search).get('view')==='account'&&actor.role==='owner')renderOwnerAccount();else renderEntry();}else login();}).catch(error=>{login();showError(error);});}else login();
+ document.addEventListener('click',e=>{const button=e.target.closest('[data-action="notifications"],[data-notification-po]');if(!button)return;if(button.dataset.action==='notifications')openNotifications();if(button.dataset.notificationPo){modal.close();renderDetail(button.dataset.notificationPo);}});
+ document.addEventListener('click',e=>{const button=e.target.closest('[data-user-edit]');if(!button)return;queueMicrotask(()=>{const user=userRecords[Number(button.dataset.userEdit)],permission=document.querySelector('#can-export-report');if(permission&&user)permission.checked=user.can_export_report===true;});});
+ document.addEventListener('input',e=>{const input=e.target;if(!input.matches?.('input,textarea,select')||input.getAttribute('aria-invalid')!=='true')return;input.removeAttribute('aria-invalid');input.removeAttribute('aria-describedby');const error=document.getElementById(input.id+'-error');if(error)error.textContent='';});
+@@ -167,3 +181,5 @@ if(!configured)service.deleteUser=(actor,user)=>demoAuth.deleteUser(actor,user);
+ document.addEventListener('click',e=>{const button=e.target.closest('[data-action="owner-recovery-request"],[data-action="owner-recovery-cancel"]');if(!button||button.disabled||pending)return;if(button.dataset.action==='owner-recovery-request')requestOwnerRecovery();else{api.cancelOwnerRecovery();login();}});
+ 
+ document.addEventListener('keydown',navigatePOForm);
++async function renderEntry(){const url=new URL(location.href),id=url.searchParams.get('po');if(id&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)){url.searchParams.delete('po');history.replaceState({},'',url);await renderDetail(id);}else await renderList();}
++document.addEventListener('click',event=>{if(event.target.closest('[data-push-settings]')){modal.close();void pushSettings();}});
+diff --git a/dist/config.js b/dist/config.js
+index 89b7d59..dd35623 100644
+--- a/dist/config.js
++++ b/dist/config.js
+@@ -1,2 +1,2 @@
+ // Public configuration only. Never put a service-role or secret key here.
+-export const config = { supabaseUrl: 'https://rhkilsnuqdkzwlncjvkj.supabase.co', publishableKey: 'sb_publishable_0_dXrejfFtlcKd4j_tvSZQ_G-wFj7Z0' };
++export const config = { supabaseUrl: 'https://rhkilsnuqdkzwlncjvkj.supabase.co', publishableKey: 'sb_publishable_0_dXrejfFtlcKd4j_tvSZQ_G-wFj7Z0', vapidPublicKey: '' };
+diff --git a/dist/index.html b/dist/index.html
+index fcecafa..28483fb 100644
+--- a/dist/index.html
++++ b/dist/index.html
+@@ -1,2 +1,2 @@
+ <!doctype html>
+-<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#001d51"><meta name="description" content="ระบบขออนุมัติใบ PO The Grands ติดตามการรับสินค้าและใบกำกับภาษี"><title>PO The Grands — ใบขอซื้อ</title><link rel="icon" href="favicon.svg?v=20260928-18"><link rel="stylesheet" href="style.css?v=20260930-19"></head><body><div id="app"></div><div id="toast" role="status" aria-live="polite"></div><dialog id="modal" aria-labelledby="modal-title"></dialog><script src="vendor/exceljs.min.js"></script><script type="module" src="app.js?v=20260928-18"></script></body></html>
++<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#001d51"><meta name="description" content="ระบบขออนุมัติใบ PO The Grands ติดตามการรับสินค้าและใบกำกับภาษี"><title>PO The Grands — ใบขอซื้อ</title><link rel="manifest" href="/manifest.webmanifest"><link rel="apple-touch-icon" href="/push-icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="icon" href="favicon.svg?v=20260928-18"><link rel="stylesheet" href="style.css?v=20260930-19"></head><body><div id="app"></div><div id="toast" role="status" aria-live="polite"></div><dialog id="modal" aria-labelledby="modal-title"></dialog><script src="vendor/exceljs.min.js"></script><script type="module" src="app.js?v=20260928-18"></script></body></html>
+diff --git a/dist/manifest.webmanifest b/dist/manifest.webmanifest
+new file mode 100644
+index 0000000..d0fddcc
+--- /dev/null
++++ b/dist/manifest.webmanifest
+@@ -0,0 +1 @@
++{"id":"/","name":"PO The Grands","short_name":"PO The Grands","lang":"th","start_url":"/","scope":"/","display":"standalone","background_color":"#f3f9ff","theme_color":"#001d51","icons":[{"src":"/push-icon-192.png","sizes":"192x192","type":"image/png"},{"src":"/push-icon-512.png","sizes":"512x512","type":"image/png"}]}
+diff --git a/dist/push-icon-192.png b/dist/push-icon-192.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..d8191d8619ab04b4898a0ec636b6bba106ecd4d5
+GIT binary patch
+literal 2851
+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
+SXNLG?(t7Yjz4*Rm=)V9pgG+}1
+
+literal 0
+HcmV?d00001
+
+diff --git a/dist/push-icon-512.png b/dist/push-icon-512.png
+new file mode 100644
+index 0000000000000000000000000000000000000000..c10787d68e9b432e67ff33712e3f91844eb3ef77
+GIT binary patch
+literal 8050
+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
+U1&+ZNAv6LlP2Fo{>b4L61ChGI2mk;8
+
+literal 0
+HcmV?d00001
+
+diff --git a/dist/push.js b/dist/push.js
+new file mode 100644
+index 0000000..d44dd34
+--- /dev/null
++++ b/dist/push.js
+@@ -0,0 +1,12 @@
++// Permission is requested only by the explicit Enable button.
++export function createPushClient({api,publicKey,env=globalThis}){
++ const supported=()=>Boolean(env.isSecureContext&&env.navigator?.serviceWorker&&env.PushManager&&env.Notification);
++ let registration,generation=0;
++ async function worker(){registration ||= await env.navigator.serviceWorker.register('/sw.js',{scope:'/'});return env.navigator.serviceWorker.ready;}
++ async function binding(reg,id){const target=reg.active||reg.waiting||reg.installing;if(!target)throw Error('ระบบแจ้งเตือนยังเริ่มไม่เสร็จ กรุณาลองอีกครั้ง');await new Promise((resolve,reject)=>{const channel=new env.MessageChannel();const timer=env.setTimeout(()=>reject(Error('บันทึกการแจ้งเตือนไม่สำเร็จ กรุณาลองอีกครั้ง')),5000);channel.port1.onmessage=e=>{env.clearTimeout(timer);channel.port1.close();e.data?.ok?resolve():reject(Error('บันทึกการแจ้งเตือนไม่สำเร็จ'));};target.postMessage({type:'push-binding',id},[channel.port2]);});}
++ async function status(){if(!supported())return 'unsupported';if(!publicKey)return 'unconfigured';if(env.Notification.permission==='denied')return 'denied';const reg=await worker();if(await reg.pushManager.getSubscription()){await sync();return 'enabled';}return 'off';}
++ async function enable(){if(!supported())throw Error('เครื่องนี้ยังเปิดแจ้งเตือนไม่ได้ บน iPhone ให้เปิดจากไอคอน PO บนหน้าจอโฮม');if(!publicKey)throw Error('ระบบแจ้งเตือนยังไม่เปิดใช้งาน');const permission=await env.Notification.requestPermission();if(permission!=='granted')throw Error('ยังไม่ได้อนุญาตแจ้งเตือน กรุณาตรวจสิทธิ์ของเว็บในการตั้งค่าเครื่อง');const reg=await worker();let sub=await reg.pushManager.getSubscription();if(!sub){const raw=publicKey.replace(/-/g,'+').replace(/_/g,'/');const key=Uint8Array.from(env.atob(raw),c=>c.charCodeAt(0));sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key});}try{const id=await api.registerPush(sub.toJSON());await binding(reg,id);return id;}catch(e){await binding(reg,null);await sub.unsubscribe();throw e;}}
++ async function sync(){const started=generation;if(supported()&&publicKey&&env.Notification.permission==='granted'){const reg=await worker();const sub=await reg.pushManager.getSubscription();if(sub){await binding(reg,null);const id=await api.registerPush(sub.toJSON());if(started===generation)await binding(reg,id);}}}
++ async function disable(){generation++;if(!supported()||!publicKey)return;const reg=await worker();await binding(reg,null);const sub=await reg.pushManager.getSubscription();if(sub){const endpoint=sub.endpoint;if(!await sub.unsubscribe())throw Error('ปิดแจ้งเตือนไม่สำเร็จ กรุณาลองอีกครั้ง');await api.unregisterPush(endpoint);}}
++ return {status,enable,sync,disable};
++}
+diff --git a/dist/sw.js b/dist/sw.js
+new file mode 100644
+index 0000000..03c5ff1
+--- /dev/null
++++ b/dist/sw.js
+@@ -0,0 +1,10 @@
++// No caches: never persist PO data or authenticated responses.
++function database(){return new Promise((resolve,reject)=>{const request=indexedDB.open('po-push-binding',1);request.onupgradeneeded=()=>request.result.createObjectStore('settings');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});}
++async function writeBinding(id){const db=await database();try{await new Promise((resolve,reject)=>{const tx=db.transaction('settings','readwrite');tx.objectStore('settings').put(id,'id');tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}finally{db.close();}}
++async function readBinding(){const db=await database();try{return await new Promise((resolve,reject)=>{const request=db.transaction('settings').objectStore('settings').get('id');request.onsuccess=()=>resolve(request.result);request.onerror=()=>reject(request.error);});}finally{db.close();}}
++self.addEventListener('install',event=>event.waitUntil(self.skipWaiting()));
++self.addEventListener('activate',event=>event.waitUntil(self.clients.claim()));
++self.addEventListener('message',event=>{if(event.data?.type!=='push-binding')return;event.waitUntil(writeBinding(event.data.id||null).then(()=>event.ports[0]?.postMessage({ok:true}),()=>event.ports[0]?.postMessage({ok:false})));});
++self.addEventListener('push',event=>event.waitUntil((async()=>{let data;try{data=event.data.json();}catch{return;}const binding=await readBinding();if(!binding||binding!==data.subscription_id||!validId(data.po_id)||!validId(data.id))return;await self.registration.showNotification('PO The Grands',{body:'มีการอัปเดตใบ PO แตะเพื่อดูรายละเอียด',tag:'po-'+data.id,icon:'/push-icon-192.png',badge:'/push-icon-192.png',data:{po_id:data.po_id}});})()));
++function validId(value){return typeof value==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);}
++self.addEventListener('notificationclick',event=>{event.notification.close();event.waitUntil((async()=>{const id=event.notification.data?.po_id;if(!validId(id))return;const url=new URL('/?po='+encodeURIComponent(id),self.location.origin).href;const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});const client=clients.find(c=>new URL(c.url).origin===self.location.origin);if(client){await client.navigate(url);await client.focus();}else await self.clients.openWindow(url);})());});
+diff --git a/package.json b/package.json
+index a046e4a..d532509 100644
+--- a/package.json
++++ b/package.json
+@@ -1 +1 @@
+-{"name":"po-the-grands","private":true,"version":"1.0.0","type":"module","scripts":{"start":"node server.mjs","test":"node --test test/*.test.mjs","check":"node --check dist/app.js && node --check dist/domain.js && node --check dist/api.js && node --check dist/export.js"},"devDependencies":{"@electric-sql/pglite":"^0.5.8"}}
+\ No newline at end of file
++{"name":"po-the-grands","private":true,"version":"1.0.0","type":"module","scripts":{"start":"node server.mjs","test":"node --test test/*.test.mjs","check":"node --check dist/app.js && node --check dist/domain.js && node --check dist/api.js && node --check dist/export.js && node --check dist/push.js && node --check dist/sw.js && node --check supabase/functions/push-worker/worker.js"},"devDependencies":{"@electric-sql/pglite":"^0.5.8"}}
+diff --git a/server.mjs b/server.mjs
+index d970143..19c46de 100644
+--- a/server.mjs
++++ b/server.mjs
+@@ -3,6 +3,6 @@ import {readFile} from 'node:fs/promises';
+ import {fileURLToPath} from 'node:url';
+ import path from 'node:path';
+ const root=fileURLToPath(new URL('./dist/',import.meta.url));
+-const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml'};
++const types={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.webmanifest':'application/manifest+json'};
+ const port=Number(process.env.PORT||4180);
+ http.createServer(async(req,res)=>{try{const pathname=decodeURIComponent(new URL(req.url,'http://localhost').pathname);const file=path.resolve(root,'.'+(pathname==='/'?'/index.html':pathname));if(!file.startsWith(root))throw Error();const data=await readFile(file);res.writeHead(200,{'Content-Type':types[path.extname(file)]||'application/octet-stream','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(data);}catch{res.writeHead(404);res.end('Not found');}}).listen(port,'127.0.0.1',()=>console.log(`PO The Grands: http://localhost:${port}/`));
+diff --git a/supabase/config.toml b/supabase/config.toml
+index 36ebfef..3947036 100644
+--- a/supabase/config.toml
++++ b/supabase/config.toml
+@@ -1,5 +1,9 @@
+ project_id = "po-the-grands"
+ 
++[functions.push-worker]
++# Dedicated scheduler secret is checked inside the handler.
++verify_jwt = false
++
+ [functions.owner-account]
+ # Public alias login; signed mutations verify bearer and active owner in the handler.
+ verify_jwt = false
+diff --git a/supabase/functions/push-worker/deno.json b/supabase/functions/push-worker/deno.json
+new file mode 100644
+index 0000000..de34079
+--- /dev/null
++++ b/supabase/functions/push-worker/deno.json
+@@ -0,0 +1 @@
++{"nodeModulesDir":"none","lock":"deno.lock","compilerOptions":{"allowJs":true,"checkJs":false},"imports":{"web-push":"npm:web-push@3.6.7"}}
+diff --git a/supabase/functions/push-worker/index.ts b/supabase/functions/push-worker/index.ts
+new file mode 100644
+index 0000000..6506c77
+--- /dev/null
++++ b/supabase/functions/push-worker/index.ts
+@@ -0,0 +1,13 @@
++import webpush from 'web-push';
++import {processPushBatch} from './worker.js';
++// Server-only scheduled endpoint. No user-supplied recipient or payload.
++Deno.serve(async request=>{
++ const secret=Deno.env.get('PUSH_WORKER_SECRET');
++ if(request.method!=='POST'||!secret||request.headers.get('x-push-secret')!==secret)return new Response('Unauthorized',{status:401});
++ const base=Deno.env.get('SUPABASE_URL'),key=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
++ const publicKey=Deno.env.get('VAPID_PUBLIC_KEY'),privateKey=Deno.env.get('VAPID_PRIVATE_KEY'),subject=Deno.env.get('VAPID_SUBJECT');
++ if(!base||!key||!publicKey||!privateKey||!subject)return new Response('Not configured',{status:503});
++ const rpc=async(name:string,body:unknown)=>{const response=await fetch(`${base}/rest/v1/rpc/${name}`,{method:'POST',headers:{apikey:key,Authorization:`Bearer ${key}`,'Content-Type':'application/json'},body:JSON.stringify(body),signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error('Push queue failed');return response.status===204?null:response.json();};
++ try{const result=await processPushBatch({rpc,send:(subscription:unknown,payload:string)=>webpush.sendNotification(subscription,payload,{vapidDetails:{subject,publicKey,privateKey},TTL:3600,timeout:10000})});return Response.json(result);}
++ catch{return new Response('Push processing failed',{status:503});}
++});
+diff --git a/supabase/functions/push-worker/worker.js b/supabase/functions/push-worker/worker.js
+new file mode 100644
+index 0000000..98e3393
+--- /dev/null
++++ b/supabase/functions/push-worker/worker.js
+@@ -0,0 +1,12 @@
++const endpointPattern=/^https:\/\/(web\.push\.apple\.com|fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|[a-z0-9-]+\.notify\.windows\.com)\/[^#\s]+$/;
++export async function processPushBatch({rpc,send}){
++ const jobs=await rpc('claim_push',{});const counts={sent:0,gone:0,retry:0,failed:0};
++ for(const job of jobs){let result='failed';if(job.endpoint.length<=4096&&endpointPattern.test(job.endpoint)){
++  try{await send({endpoint:job.endpoint,keys:job.keys},JSON.stringify({id:job.id,po_id:job.po_id,subscription_id:job.subscription_id}));result='sent';}
++  catch(error){const status=Number(error?.statusCode);result=status===404||status===410?'gone':!status||status===429||status>=500?'retry':'failed';}
++ }
++ await rpc('finish_push',{p_id:job.delivery_id,p_lease:job.lease_id,p_result:result});
++ counts[result]++;
++ }
++ return {processed:jobs.length,...counts};
++}
+diff --git a/supabase/migrations/20261006071609_web_push_notifications.sql b/supabase/migrations/20261006071609_web_push_notifications.sql
+new file mode 100644
+index 0000000..6e36a24
+--- /dev/null
++++ b/supabase/migrations/20261006071609_web_push_notifications.sql
+@@ -0,0 +1,93 @@
++-- Unreleased. Created with Supabase CLI; never applied to production during development.
++begin;
++create table public.push_subscriptions (
++ id uuid primary key default gen_random_uuid(),
++ user_id uuid not null references public.profiles(id),
++ endpoint text not null unique,
++ p256dh text not null,
++ auth text not null,
++ created_at timestamptz not null default now(),
++ updated_at timestamptz not null default now(),
++ constraint valid_push_endpoint check(length(endpoint)<=4096 and endpoint ~ '^https://(web\.push\.apple\.com|fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|[a-z0-9-]+\.notify\.windows\.com)/[^#[:space:]]+$'),
++ constraint valid_push_keys check(p256dh ~ '^[A-Za-z0-9_-]{87}=?$' and auth ~ '^[A-Za-z0-9_-]{22}={0,2}$')
++);
++create index push_subscriptions_user on public.push_subscriptions(user_id);
++create table public.push_deliveries (
++ id uuid primary key default gen_random_uuid(),
++ notification_id uuid not null references public.notifications(id) on delete cascade,
++ subscription_id uuid not null references public.push_subscriptions(id) on delete cascade,
++ attempts integer not null default 0,
++ available_at timestamptz not null default now(),
++ lease_id uuid,
++ leased_until timestamptz,
++ created_at timestamptz not null default now(),
++ unique(notification_id,subscription_id)
++);
++create index push_deliveries_due on public.push_deliveries(available_at);
++alter table public.push_subscriptions enable row level security;
++alter table public.push_deliveries enable row level security;
++revoke all on public.push_subscriptions,public.push_deliveries from public,anon,authenticated;
++grant all on public.push_subscriptions,public.push_deliveries to service_role;
++
++create function public.register_push(p_endpoint text,p_p256dh text,p_auth text) returns uuid language plpgsql security definer set search_path='' as $$
++declare v_user uuid:=auth.uid(); v_id uuid; v_existing public.push_subscriptions;
++begin
++ if v_user is null or not exists(select 1 from public.profiles where id=v_user and deleted_at is null) then raise exception 'บัญชีนี้ไม่มีสิทธิ์ใช้งาน'; end if;
++ perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(v_user::text,0));
++ if not exists(select 1 from public.push_subscriptions where endpoint=p_endpoint) and (select count(*) from public.push_subscriptions where user_id=v_user)>=20 then raise exception 'เปิดแจ้งเตือนได้ไม่เกิน 20 เครื่องต่อบัญชี'; end if;
++ select * into v_existing from public.push_subscriptions where endpoint=p_endpoint for update;
++ if found and v_existing.user_id<>v_user then raise exception 'กรุณาปิดแจ้งเตือนของบัญชีเดิมก่อนเปลี่ยนบัญชี'; end if;
++ insert into public.push_subscriptions(user_id,endpoint,p256dh,auth) values(v_user,p_endpoint,p_p256dh,p_auth)
++ on conflict(endpoint) do update set p256dh=excluded.p256dh,auth=excluded.auth,updated_at=now()
++ where push_subscriptions.user_id=v_user returning id into v_id;
++ if v_id is null then raise exception 'กรุณาปิดแจ้งเตือนของบัญชีเดิมก่อนเปลี่ยนบัญชี'; end if;
++ return v_id;
++end $$;
++create function public.unregister_push(p_endpoint text) returns void language sql security definer set search_path='' as $$
++ delete from public.push_subscriptions where endpoint=p_endpoint and user_id=auth.uid();
++$$;
++revoke all on function public.register_push(text,text,text),public.unregister_push(text) from public,anon,authenticated;
++grant execute on function public.register_push(text,text,text),public.unregister_push(text) to authenticated;
++
++create schema if not exists po_push_private;
++revoke all on schema po_push_private from public,anon,authenticated;
++create function po_push_private.enqueue() returns trigger language plpgsql security definer set search_path='' as $$
++begin
++ insert into public.push_deliveries(notification_id,subscription_id)
++ select new.id,s.id from public.push_subscriptions s join public.profiles p on p.id=s.user_id
++ where s.user_id=new.recipient_id and p.deleted_at is null on conflict do nothing;
++ return new;
++end $$;
++revoke all on function po_push_private.enqueue() from public,anon,authenticated;
++create trigger notification_push after insert on public.notifications for each row execute function po_push_private.enqueue();
++
++create function public.claim_push() returns jsonb language plpgsql security definer set search_path='' as $$
++declare v_lease uuid:=gen_random_uuid(); v_result jsonb;
++begin
++ -- Bounded retention, including dead letters; business notifications are untouched.
++ delete from public.push_deliveries where created_at<now()-interval '1 day' or attempts>=5;
++ delete from public.push_subscriptions s where not exists(select 1 from public.profiles p where p.id=s.user_id and p.deleted_at is null);
++ with due as (
++ select d.id from public.push_deliveries d where d.available_at<=now() and (d.leased_until is null or d.leased_until<now())
++ order by d.available_at limit 5 for update skip locked
++ ), claimed as (
++ update public.push_deliveries d set lease_id=v_lease,leased_until=now()+interval '2 minutes',attempts=d.attempts+1
++ from due where d.id=due.id returning d.*
++ ) select coalesce(jsonb_agg(jsonb_build_object('delivery_id',d.id,'lease_id',v_lease,'attempts',d.attempts,'id',n.id,'po_id',n.po_id,'subscription_id',s.id,'endpoint',s.endpoint,'keys',jsonb_build_object('p256dh',s.p256dh,'auth',s.auth))),'[]'::jsonb)
++ into v_result from claimed d join public.notifications n on n.id=d.notification_id join public.push_subscriptions s on s.id=d.subscription_id and s.user_id=n.recipient_id;
++ return v_result;
++end $$;
++create function public.finish_push(p_id uuid,p_lease uuid,p_result text) returns void language plpgsql security definer set search_path='' as $$
++declare v_sub uuid;
++begin
++ if p_result not in ('sent','gone','retry','failed') then raise exception 'Invalid result'; end if;
++ select subscription_id into v_sub from public.push_deliveries where id=p_id and lease_id=p_lease;
++ if not found then return; end if;
++ if p_result='gone' then delete from public.push_subscriptions where id=v_sub;
++ elsif p_result in ('sent','failed') then delete from public.push_deliveries where id=p_id and lease_id=p_lease;
++ else update public.push_deliveries set lease_id=null,leased_until=null,available_at=now()+make_interval(secs=>least(3600,60*(2^attempts)::integer)) where id=p_id and lease_id=p_lease;
++ end if;
++end $$;
++revoke all on function public.claim_push(),public.finish_push(uuid,uuid,text) from public,anon,authenticated;
++grant execute on function public.claim_push(),public.finish_push(uuid,uuid,text) to service_role;
++commit;
+diff --git a/test/push-client.test.mjs b/test/push-client.test.mjs
+new file mode 100644
+index 0000000..6e54a66
+--- /dev/null
++++ b/test/push-client.test.mjs
+@@ -0,0 +1,11 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {createPushClient} from '../dist/push.js';
++function fixture(){let sub=null,permission='default';const calls=[],bindings=[];const reg={active:{postMessage(message,ports){bindings.push(message.id);ports[0].postMessage({ok:true});}},pushManager:{async getSubscription(){return sub;},async subscribe(){calls.push('subscribe');sub={endpoint:'https://web.push.apple.com/test',toJSON(){return {endpoint:this.endpoint,keys:{p256dh:'p',auth:'a'}};},async unsubscribe(){calls.push('unsubscribe');sub=null;return true;}};return sub;}}};
++ const env={isSecureContext:true,PushManager:{},Notification:{get permission(){return permission;},async requestPermission(){calls.push('permission');permission='granted';return permission;}},navigator:{serviceWorker:{async register(){calls.push('worker');return reg;},ready:Promise.resolve(reg)}},MessageChannel,setTimeout,clearTimeout,atob};
++ const api={async registerPush(){calls.push('register');return 'binding';},async unregisterPush(){calls.push('unregister');}};return {client:createPushClient({api,publicKey:'BA',env}),calls,bindings,api,env};}
++test('one permission action; later sync never prompts',async()=>{const f=fixture();assert.equal(await f.client.status(),'off');assert.ok(!f.calls.includes('permission'));await f.client.enable();await f.client.sync();assert.equal(f.calls.filter(x=>x==='permission').length,1);assert.equal(f.calls.filter(x=>x==='subscribe').length,1);assert.equal(f.bindings.at(-1),'binding');});
++test('logout clears binding before unsubscribing and server removal',async()=>{const f=fixture();await f.client.enable();await f.client.disable();assert.equal(f.bindings.at(-1),null);assert.deepEqual(f.calls.slice(-2),['unsubscribe','unregister']);assert.equal(await f.client.status(),'off');});
++test('registration failure removes subscription; no false success',async()=>{const f=fixture();f.api.registerPush=async()=>{throw Error('offline');};await assert.rejects(()=>f.client.enable(),/offline/);assert.equal(f.bindings.at(-1),null);assert.equal(f.calls.at(-1),'unsubscribe');});
++test('unconfigured and unsupported do not register worker or request permission',async()=>{const f=fixture();assert.equal(await createPushClient({api:f.api,publicKey:'',env:f.env}).status(),'unconfigured');f.env.isSecureContext=false;assert.equal(await f.client.status(),'unsupported');assert.deepEqual(f.calls,[]);});
++test('stale sync cannot restore binding after logout',async()=>{const f=fixture();await f.client.enable();let finish;f.api.registerPush=()=>new Promise(resolve=>{finish=resolve;});const syncing=f.client.sync();while(!finish)await new Promise(resolve=>setImmediate(resolve));await f.client.disable();finish('old-binding');await syncing;assert.equal(f.bindings.at(-1),null);});
+diff --git a/test/push-database.test.mjs b/test/push-database.test.mjs
+new file mode 100644
+index 0000000..e5af78f
+--- /dev/null
++++ b/test/push-database.test.mjs
+@@ -0,0 +1,21 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {readFile} from 'node:fs/promises';
++import {PGlite} from '@electric-sql/pglite';
++test('push queue authorization, transaction boundary, recipient and lease',async t=>{
++ const db=new PGlite();const owner='22222222-2222-4222-8222-222222222222',office='11111111-1111-4111-8111-111111111111';
++ await db.exec(`create role anon;create role authenticated;create role service_role;create schema auth;create table auth.users(id uuid primary key);create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;grant usage on schema auth to authenticated,anon;grant execute on function auth.uid() to authenticated,anon;`);
++ for(const path of ['20260929000000_initial_po_schema.sql','20261006071609_web_push_notifications.sql'])await db.exec(await readFile(new URL('../supabase/migrations/'+path,import.meta.url),'utf8'));
++ await db.query('insert into auth.users values($1),($2)',[owner,office]);await db.query("insert into public.profiles(id,login_email,display_name,role) values($1,'owner@test.test','owner','owner'),($2,'office@test.test','office','office')",[owner,office]);
++ const as=async(id,fn,role='authenticated')=>{await db.exec('set role '+role);await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id||'']);try{return await fn();}finally{await db.exec('reset role');}};
++ const register=endpoint=>db.query('select public.register_push($1,$2,$3) id',[endpoint,'B'.repeat(87),'a'.repeat(22)]).then(r=>r.rows[0].id);
++ let subscription;
++ await t.test('only authenticated active profile registers valid provider',async()=>{await as(owner,async()=>{subscription=await register('https://web.push.apple.com/owner');assert.equal(await register('https://web.push.apple.com/owner'),subscription);await assert.rejects(()=>register('https://localhost/private'));await assert.rejects(()=>db.query('select * from public.push_subscriptions'));await assert.rejects(()=>db.query('select public.claim_push()'));});await as(null,async()=>{await assert.rejects(()=>register('https://web.push.apple.com/anon'));},'anon');});
++ await t.test('another user cannot steal or remove endpoint',async()=>{await as(office,async()=>{await assert.rejects(()=>register('https://web.push.apple.com/owner'));await db.query('select public.unregister_push($1)',['https://web.push.apple.com/owner']);});assert.equal((await db.query('select count(*) n from public.push_subscriptions')).rows[0].n,1);});
++ let po;
++ await t.test('committed lifecycle creates recipient queue and idempotent retries do not duplicate',async()=>{const items=JSON.stringify([{name:'test',spec:'s',source:'v',qty:'1',unit:'ชิ้น',unit_price:'100',vat:false}]);const key=crypto.randomUUID();await as(office,async()=>{po=(await db.query("select public.create_po($1::jsonb,'2026-10-06',$2) po",[items,key])).rows[0].po;await db.query("select public.create_po($1::jsonb,'2026-10-06',$2)",[items,key]);});assert.equal((await db.query('select count(*) n from public.push_deliveries')).rows[0].n,1);});
++ await t.test('rollback has no push side effect',async()=>{await db.exec('begin');await db.query("insert into public.notifications(recipient_id,po_id,action,title,message) values($1,$2,'close','test','test')",[owner,po.id]);await db.exec('rollback');assert.equal((await db.query('select count(*) n from public.push_deliveries')).rows[0].n,1);});
++ await t.test('leases prevent concurrent claims; wrong lease cannot acknowledge',async()=>{let jobs=await as(null,()=>db.query('select public.claim_push() jobs'),'service_role');jobs=jobs.rows[0].jobs;assert.equal(jobs.length,1);assert.equal(jobs[0].subscription_id,subscription);assert.equal((await as(null,()=>db.query('select public.claim_push() jobs'),'service_role')).rows[0].jobs.length,0);await as(null,()=>db.query("select public.finish_push($1,$2,'sent')",[jobs[0].delivery_id,crypto.randomUUID()]),'service_role');assert.equal((await db.query('select count(*) n from public.push_deliveries')).rows[0].n,1);await as(null,()=>db.query("select public.finish_push($1,$2,'gone')",[jobs[0].delivery_id,jobs[0].lease_id]),'service_role');assert.equal((await db.query('select count(*) n from public.push_subscriptions')).rows[0].n,0);});
++ await t.test('disabled profile cannot register',async()=>{await db.query('update public.profiles set deleted_at=now() where id=$1',[office]);await as(office,()=>assert.rejects(()=>register('https://web.push.apple.com/disabled')));});
++ await db.close();
++});
+diff --git a/test/push-handler.test.mjs b/test/push-handler.test.mjs
+new file mode 100644
+index 0000000..f657933
+--- /dev/null
++++ b/test/push-handler.test.mjs
+@@ -0,0 +1,10 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {readFile} from 'node:fs/promises';
++import {stripTypeScriptTypes} from 'node:module';
++import vm from 'node:vm';
++const source=stripTypeScriptTypes((await readFile(new URL('../supabase/functions/push-worker/index.ts',import.meta.url),'utf8')).replace(/^import .*;\n/gm,''));
++function fixture(overrides={}){let handler;const calls=[];const values={PUSH_WORKER_SECRET:'test-scheduler-secret',SUPABASE_URL:'https://project.test',SUPABASE_SERVICE_ROLE_KEY:'test-server-key',VAPID_PUBLIC_KEY:'test-public-key',VAPID_PRIVATE_KEY:'test-private-key',VAPID_SUBJECT:'mailto:operator@example.test',...overrides};vm.runInNewContext(source,{Deno:{env:{get:key=>values[key]},serve:fn=>handler=fn},Response,AbortSignal,webpush:{sendNotification:async(...args)=>calls.push(args)},processPushBatch:async({rpc,send})=>{await rpc('claim_push',{});await send({endpoint:'https://web.push.apple.com/test'},'opaque payload');return {processed:1,sent:1};},fetch:async(url,options)=>{calls.push({url,options});return new Response('[]',{status:200});}});return {handler,calls};}
++test('worker requires dedicated scheduler secret and POST; no token or payload bypass',async()=>{const f=fixture();for(const request of [new Request('https://edge.test',{method:'POST'}),new Request('https://edge.test',{method:'GET',headers:{'x-push-secret':'test-scheduler-secret'}}),new Request('https://edge.test',{method:'POST',headers:{Authorization:'Bearer test-server-key','x-push-secret':'wrong'},body:'{"recipient_id":"other"}'})])assert.equal((await f.handler(request)).status,401);assert.equal(f.calls.length,0);});
++test('missing server configuration fails before any queue or send',async()=>{const f=fixture({VAPID_PRIVATE_KEY:undefined});assert.equal((await f.handler(new Request('https://edge.test',{method:'POST',headers:{'x-push-secret':'test-scheduler-secret'}}))).status,503);assert.equal(f.calls.length,0);});
++test('authorized worker uses server-only credentials and pinned send options',async()=>{const f=fixture();const response=await f.handler(new Request('https://edge.test',{method:'POST',headers:{'x-push-secret':'test-scheduler-secret'},body:'{"recipient":"ignored"}'}));assert.equal(response.status,200);assert.deepEqual(await response.json(),{processed:1,sent:1});assert.equal(f.calls[0].url,'https://project.test/rest/v1/rpc/claim_push');assert.equal(f.calls[0].options.headers.Authorization,'Bearer test-server-key');assert.equal(f.calls[1][2].timeout,10000);assert.equal(f.calls[1][2].TTL,3600);});
+diff --git a/test/push-service-worker.test.mjs b/test/push-service-worker.test.mjs
+new file mode 100644
+index 0000000..34a5aba
+--- /dev/null
++++ b/test/push-service-worker.test.mjs
+@@ -0,0 +1,16 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import vm from 'node:vm';
++import {readFile} from 'node:fs/promises';
++test('service worker validates account binding and safe PO deep links',async()=>{
++ const handlers={},shown=[],opened=[];const id='11111111-1111-4111-8111-111111111111';let bound='binding';
++ const indexedDB={open(){const request={result:{transaction(){return {objectStore(){return {get(){const query={};queueMicrotask(()=>{query.result=bound;query.onsuccess();});return query;}};}};},close(){}}};queueMicrotask(()=>request.onsuccess());return request;}};
++ const self={addEventListener(name,fn){handlers[name]=fn;},location:{origin:'https://po.test'},registration:{showNotification:async(...args)=>shown.push(args)},clients:{matchAll:async()=>[],openWindow:async url=>opened.push(url)}};
++ vm.runInNewContext(await readFile(new URL('../dist/sw.js',import.meta.url),'utf8'),{self,indexedDB,URL});
++ async function push(data){let pending;handlers.push({data:{json:()=>data},waitUntil(p){pending=p;}});await pending;}
++ await push({id,po_id:id,subscription_id:'other'});assert.equal(shown.length,0);
++ await push({id,po_id:'https://evil.test',subscription_id:'binding'});assert.equal(shown.length,0);
++ await push({id,po_id:id,subscription_id:'binding'});assert.equal(shown.length,1);assert.equal(shown[0][1].tag,'po-'+id);assert.ok(!shown[0][1].body.includes('ราคา'));
++ let pending;handlers.notificationclick({notification:{data:{po_id:id},close(){}},waitUntil(p){pending=p;}});await pending;assert.equal(opened[0],'https://po.test/?po='+id);
++ bound=null;await push({id,po_id:id,subscription_id:'binding'});assert.equal(shown.length,1);
++});
+diff --git a/test/push-worker.test.mjs b/test/push-worker.test.mjs
+new file mode 100644
+index 0000000..af52544
+--- /dev/null
++++ b/test/push-worker.test.mjs
+@@ -0,0 +1,7 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {processPushBatch} from '../supabase/functions/push-worker/worker.js';
++const job={delivery_id:'d',lease_id:'l',id:'n',po_id:'p',subscription_id:'s',endpoint:'https://web.push.apple.com/token',keys:{p256dh:'key',auth:'secret'}};
++for(const [name,status,result] of [['success',null,'sent'],['expired',410,'gone'],['missing',404,'gone'],['rate limit',429,'retry'],['server',503,'retry'],['network',0,'retry'],['invalid',400,'failed']])test('worker '+name,async()=>{const calls=[];await processPushBatch({rpc:async(name,args)=>{calls.push({name,args});return name==='claim_push'?[job]:null;},send:async(sub,payload)=>{assert.deepEqual(sub,{endpoint:job.endpoint,keys:job.keys});assert.deepEqual(JSON.parse(payload),{id:'n',po_id:'p',subscription_id:'s'});if(status!==null)throw {statusCode:status};}});assert.equal(calls[1].args.p_result,result);assert.equal(calls[1].args.p_lease,'l');});
++test('worker rejects arbitrary endpoints without sending',async()=>{let sends=0;const results=[];await processPushBatch({rpc:async(name,args)=>name==='claim_push'?[{...job,endpoint:'https://127.0.0.1/private'}]:results.push(args),send:async()=>sends++});assert.equal(sends,0);assert.equal(results[0].p_result,'failed');});
++test('queue failure stops rather than acknowledging unsent jobs',async()=>{await assert.rejects(()=>processPushBatch({rpc:async()=>{throw Error('offline');},send:async()=>assert.fail()}));});
