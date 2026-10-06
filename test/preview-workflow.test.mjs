@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {createPreviewService,previewStorageKey,legacyPreviewStorageKey} from '../dist/preview-workflow.js';
+import {createPreviewService,detailFinancialSummaries,previewStorageKey,legacyPreviewStorageKey} from '../dist/preview-workflow.js';
 import {createPreviewFixtures} from '../dist/preview-fixtures.js';
 
 class MemoryStorage{data=new Map();fail=false;getItem(k){return this.data.get(k)||null;}setItem(k,v){if(this.fail)throw Error('quota');this.data.set(k,String(v));}removeItem(k){this.data.delete(k);}}
@@ -35,6 +35,10 @@ test('receipt and close require atomic eligibility and confirmation; actual tota
 });
 test('report is primary-only and mixed PO total includes eligible actual items only',()=>{
  const {api}=service();assert.throws(()=>api.report('2026-10',owner),/ฝ่ายจัดซื้อหลัก/);assert.throws(()=>api.report('2026-10',office),/ฝ่ายจัดซื้อหลัก/);const r=api.report('2026-10',primary),mixed=r.rows.find(p=>p.id==='preview-v2-mixed'),fixture=api.load('preview-v2-mixed',primary);const eligible=fixture.items.filter(i=>['approved','received'].includes(i.state)).reduce((n,i)=>n+i.total_cents,0);assert.equal(mixed.total_cents,eligible);assert.equal(r.total_cents,r.rows.reduce((n,p)=>n+p.total_cents,0));assert.equal(r.rows.find(p=>p.id==='preview-v2-all-rejected').total_cents,0);
+});
+test('detail retains full request totals separately from report-eligible purchase value',()=>{
+ const {api}=service();const pending=api.load('preview-v2-pending',office),pendingTotals=detailFinancialSummaries(pending.items);assert.ok(pendingTotals.request.total_cents>0);assert.equal(pendingTotals.eligible.total_cents,0);
+ const mixed=api.load('preview-v2-mixed',office),mixedTotals=detailFinancialSummaries(mixed.items);assert.ok(mixedTotals.request.total_cents>mixedTotals.eligible.total_cents);assert.equal(mixedTotals.eligible.total_cents,mixed.items.filter(i=>['approved','received'].includes(i.state)).reduce((sum,i)=>sum+i.total_cents,0));
 });
 test('durable command identity, role capabilities, immutability and stale-version checks',()=>{
  const storage=new MemoryStorage(),a=createPreviewService({storage,fixtures:createPreviewFixtures()}),b=createPreviewService({storage,fixtures:createPreviewFixtures()});const p=a.load('preview-v2-pending',owner),first=act(a,p,'approve_item',{itemId:'item-pending-a',key:'same'});assert.deepEqual(act(b,p,'approve_item',{itemId:'item-pending-a',key:'same'}),first);assert.throws(()=>act(b,p,'approve_item',{actor:{...owner,role:'office'},itemId:'item-pending-a',key:'same'}),/สิทธิ์|รหัสคำสั่ง/);const changed=a.load(p.id,owner);assert.throws(()=>act(b,p,'approve_item',{itemId:'item-pending-b',key:'stale'}),/ข้อมูลเปลี่ยน/);first.events[0].reason='caller mutation';first.items[0].name='caller mutation';assert.notEqual(a.load(p.id,owner).items[0].name,'caller mutation');assert.throws(()=>a.load(p.id,other),/ไม่มีสิทธิ์/);

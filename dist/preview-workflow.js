@@ -5,6 +5,7 @@ export const legacyPreviewStorageKey='po-grands-preview-workflow-v1';
 const validStates=new Set(['pending','returned','revision_requested','editing','approved','received','rejected']);
 const clone=value=>JSON.parse(JSON.stringify(value));
 const eligible=item=>['approved','received'].includes(item.state);
+export function detailFinancialSummaries(items){const eligibleItems=items.filter(eligible);return {request:totals(items),eligible:totals(eligibleItems)};}
 const snapshot=item=>({department:item.department,name:item.name,spec:item.spec,source:item.source,note:item.note||'',payment_method:item.payment_method,qty:item.qty,unit:item.unit,unit_price:item.unit_price,vat:!!item.vat,base_cents:item.base_cents,tax_cents:item.tax_cents,total_cents:item.total_cents});
 const statusOf=po=>{if(po.closed_at)return'closed';const rows=po.items;if(rows.length&&rows.every(i=>i.state==='rejected'))return'rejected';if(rows.some(i=>['pending','returned','revision_requested','editing'].includes(i.state)))return'pending';if(rows.length&&rows.every(i=>i.state==='received'||i.state==='rejected'))return'received';return'approved';};
 function refresh(po){const sum=totals(po.items);po.total_cents=sum.total_cents;po.base_cents=sum.base_cents;po.tax_cents=sum.tax_cents;po.confirmed_purchase_cents=po.items.filter(eligible).reduce((n,i)=>n+i.total_cents,0);po.received_cents=po.items.filter(i=>i.state==='received').reduce((n,i)=>n+i.total_cents,0);po.status=statusOf(po);return po;}
