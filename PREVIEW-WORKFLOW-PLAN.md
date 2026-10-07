@@ -1,3 +1,23 @@
+# Active incremental request-only contract — 7 October 2026
+
+User now authorizes only adding `ส่งคำขอแก้ไข` to the original office PO detail. Clicking reveals item checkboxes in the existing table; creator selects one or more items, supplies a mandatory reason and submits or cancels. This extends the isolated baseline below and does not revive previous revision/partial approval features. Production source/main/Supabase remain unchanged.
+
+- Creator office may request own pending/approved POs only; primary office cannot request someone else’s PO. Received/closed/rejected POs deny request. Preserve original PO id/number/status/items/prices.
+- Place the button beside original รายการสินค้า heading and selection controls within existing first cells. Use original native dialogs, field/error/focus/pending helpers. Show a concise saved request with selected names/reason/time to creator and owner; add no unlock/edit/reapprove/partial decision controls.
+- Store immutable selection snapshots/index identity and PO version in a separate baseline-prefixed request namespace. Validate against latest original service data, stale version/snapshot, actor and one-active-request-per-PO before saving. Invalid/cancelled/failed writes must leave request/order storage unchanged. Repeated command returns the same record only after authority validation; no duplicate requests.
+- Generated preview app extension and passive module only. Original source app/api/style/index/config/domain remain protected. Keep baseline account/data namespace and every earlier browser namespace intact.
+- Required evidence: generated API plus real generated-app DOM click test, multi-selection/reason validation/cancel, creator/owner visibility, reload persistence, actor/stale/duplicate/write-failure denial, full original PO equality and no network; clean production build excludes extension. Root-confirmed operational hold: a saved active request blocks all original lifecycle mutations on that PO (approve/reject/receive/close), while original status and item values remain intact. UI explains the request is pending; service guards direct calls too. Selection can be cancelled before submission; submitted requests have no processing/withdrawal action in this iteration. Other POs are unaffected. Owner processing is explicitly the next user-directed step, not implemented now.
+
+## Request-only implementation review — 7 October 2026
+
+Supervisor approves this scoped extension for preview publication. Worker reported 107 passing tests and syntax/diff checks. Supervisor independently passed six request/build/runtime tests and reran the actual generated-app jsdom harness using the existing test runtime (no dependency added): two real item checkboxes, missing-reason and empty-selection field focus/aria validation, cancel without a request write, both-item submission, owner reload/login visibility and disabled owner lifecycle controls. The request persisted once; original PO remained pending with original identity and item values unchanged.
+
+Review confirms submit uses original global pending helper plus actor/route/load-sequence checks before storage write; corrupt/unreadable request storage renders an error and disables lifecycle controls. Generated API blocks direct lifecycle actions on the requested PO. Production app/API/style/index/config/domain remain unchanged, and production build omits the request module. This verifies only selection/request submission and the explicit hold; owner processing/unlock/edit/reapproval remain unimplemented. Browser verification for this new extension is pending.
+
+---
+
+# Baseline contract (still applicable except explicit request extension)
+
 # Active baseline reset contract — 7 October 2026
 
 This section supersedes every revision/partial/estimated workflow approval below. User now requests the original baseline so they can direct subsequent changes. Keep original production UI and original whole-PO demo behavior, with no revision, unlock, partial-decision, synthetic scenario or replacement UI controls. Historical feature sources and review evidence remain retained; no existing browser data are migrated, inspected or cleared.

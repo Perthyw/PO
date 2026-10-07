@@ -1,5 +1,8 @@
 # PO The Grands UX contract
 
+## Current preview extension — selected item revision requests (2026-10-07)
+Only the synthetic preview extends the baseline detail: the creating office account sees `ส่งคำขอแก้ไข` next to รายการสินค้า on pending/approved POs. Clicking shows labelled checkboxes within the existing table, required reason, send and cancel. Cancel restores focus and writes nothing; validation retains selections and focuses missing input. Send validates the latest PO/actor context, saves one active request and shows selected names/reason/time. The same PO and all monetary values remain unchanged. Owner and creator see the saved request after reload. Pending requests hold all original lifecycle actions for that PO, with an explicit notice and a generated-service guard. Other POs keep the original lifecycle. Owner processing and editing remain future user-directed steps. Production UI/API/domain/config/styles are unchanged.
+
 Business authority: PRODUCT.md (2026-09-25 explicit user request). Supabase setup and storage contracts: SUPABASE-SETUP.md and supabase/migrations/20260929000000_initial_po_schema.sql. New independent app, no sibling legacy workflow to inherit.
 
 ## Canonical UI Map
