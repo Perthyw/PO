@@ -1,3 +1,28 @@
+# Active baseline reset contract — 7 October 2026
+
+This section supersedes every revision/partial/estimated workflow approval below. User now requests the original baseline so they can direct subsequent changes. Keep original production UI and original whole-PO demo behavior, with no revision, unlock, partial-decision, synthetic scenario or replacement UI controls. Historical feature sources and review evidence remain retained; no existing browser data are migrated, inspected or cleared.
+
+## Implementation boundary
+
+Only the generated Vercel Preview bundle changes routing/configuration and known storage-key literals. Preview loads original index/app/style/api/domain/export. Generated config is blank for Supabase. Generated api.js additionally contains a build-only synthetic account initializer; generated app.js/api.js replace every original browser-storage key with a new `po-the-grands-preview-baseline-v1-` namespace, including accounts, orders, departments, notifications, reset marker and session. No global storage monkeypatch and no reading/removing old namespaces. Source production files remain unchanged. All custom workflow/adapter/app/styles/fixtures/bootstrap modules are omitted from generated output; their source/history may remain in git. Clean production build removes preview leftovers and preserves original files exactly.
+
+## Baseline interaction and review checklist
+
+- Preserve original login/setup/account-switch screens, sidebar, five status cards, PO create/review/detail tracker, form fields, native dialogs, report and Excel. Generated preview API seeds public synthetic owner/office accounts only if the new baseline account key is absent; existing baseline accounts are never overwritten. Original login stays unchanged. Documented users are `owner` and `office`, public demo password `DemoOnly123!` for both; office is primary for report review. Original final demo account implementation accepts six-character minimum passwords. Original demo-office seed hiding remains original behavior.
+- Original whole-PO transition is authoritative: pending → owner approve/reject with original reason rules → office goods receipt → owner invoice acknowledgement/close. Do not inherit per-item revision, partial approval or item-level report eligibility from prior preview.
+- Generated-file tests compare original app after only explicit key substitutions and API after explicit substitutions plus the agreed seed initializer; style/index/domain/export remain canonical. Exercise original demoAuth/create/action using isolated generated API, prove all observed storage keys belong to new baseline namespace and seeded old keys remain byte-identical. Check full-PO report totals and original role/confirmation gates.
+- Full test/syntax/diff checks and source production diffs precede provisional preview publication. Parent publishes preview branch only and browser-verifies original login rendering and inactive-feature omission. Seeded login and whole-PO lifecycle are verified by Node runtime tests; browser credential entry and lifecycle verification are not performed. No production/Supabase/main authorization.
+
+## Baseline implementation review — 7 October 2026
+
+Supervisor accepts the baseline implementation for preview publication. Parent full suite passed 104/104, syntax and diff checks passed; supervisor independently reran all three baseline build/runtime tests successfully. Generated app equals original app after six explicit storage-key substitutions; generated API equals original API plus those substitutions and the absent-key-only synthetic seed. Original index/style/domain and production files remain canonical. Generated outputs omit previous custom preview modules/styles/harness. Runtime test proves public synthetic owner/office login, original full-PO create/approve/receive/invoice-close/report/persistence, no network calls, namespace-only reads/writes, legacy sentinels unchanged, and existing baseline accounts (including an empty list) preserved.
+
+Browser verification for the newly published baseline is still pending and is limited to original login rendering and inactive-feature omission; no credential entry or browser lifecycle claim is authorized. Prior feature browser tests below are historical. Production/main/Supabase remain untouched and unapproved.
+
+---
+
+# Historical contracts and acceptance (superseded by baseline reset)
+
 # Active revised preview contract — 6 October 2026
 
 This section supersedes all workflow/design approvals below. The earlier per-item/estimated-price preview is historical evidence only. Explicit current user instruction is authoritative: preserve the original production UI, remove estimated-price concepts, make whole-PO approval the normal action, keep partial decisions as an explicit secondary mode, and finish Excel export.
