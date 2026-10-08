@@ -1,5 +1,8 @@
 # PO The Grands UX contract
 
+## Current preview extension — selected item revision requests (2026-10-07)
+Only the synthetic preview extends the baseline detail: the creating office account sees `ส่งคำขอแก้ไข` in the bottom-right actions row of สถานะใบ PO, below the tracker, on pending/approved POs. Clicking shows compact accessible checkboxes directly before each item name on the same line in the existing table, without duplicate visible selection text, plus required reason, send and cancel. Cancel restores focus and writes nothing; validation retains selections and focuses missing input. Send validates the latest PO/actor context, saves one active request and shows selected names/reason/time. The same PO and all monetary values remain unchanged. Owner and creator see the saved request after reload. Pending requests hold all original lifecycle actions for that PO, with an explicit notice and a generated-service guard. Other POs keep the original lifecycle. Owner processing and editing remain future user-directed steps. Production UI/API/domain/config/styles are unchanged.
+
 Business authority: PRODUCT.md (2026-09-25 explicit user request). Supabase setup and storage contracts: SUPABASE-SETUP.md and supabase/migrations/20260929000000_initial_po_schema.sql. New independent app, no sibling legacy workflow to inherit.
 
 ## Canonical UI Map
@@ -61,3 +64,10 @@ Capture and remove callback URL secrets before session restoration. Validate Aut
 
 ## PO arrow navigation
 `navigatePOForm` in `dist/form-navigation.js` owns optional arrow-key navigation for the create form. Left/Up move backward at the start of text; Right/Down move forward at its end. Number fields move directly. Preserve selections, IME composition, modified shortcuts and native date/radio/checkbox/datalist behavior. Skip unavailable controls, do not wrap or submit, and retain standard Tab navigation. Login username has a visible label and no example placeholder.
+
+## Isolated baseline preview (2026-10-07)
+Business and lifecycle authority: the active section of `PREVIEW-WORKFLOW-PLAN.md`. Preview builds use the original `index.html`, `app.js`, `style.css`, `api.js` and `domain.js`, with an empty generated Supabase configuration. The generated app and API differ only in browser storage-key prefixes, plus a build-only seed appended to the generated API. Production source files remain unchanged. Custom preview workflow modules and styles are kept out of both generated outputs.
+
+The preview presents the original login, sidebar, metrics, list, tracker, forms, detail, report, dialogs and lifecycle. It adds no synthetic role-switch controls, partial decisions, revision workflow or scenario picker; the original account-switch interaction remains. The demo accounts are synthetic and public: username `owner` or `office`; password `DemoOnly123!` for either. They are seeded only when the preview-baseline account key does not exist; an existing stored account list, including an empty list, is preserved. These accounts do not authorize access to production data.
+
+The generated app/API use the `po-the-grands-preview-baseline-v1-` storage prefix for demo accounts, orders, departments, notifications, the demo-reset marker and the Supabase session key. They do not read, migrate or remove original demo/session keys or earlier preview namespaces. Preview POs and accounts stay in the current browser. Closing requires the original whole-PO lifecycle and invoice acknowledgement. No new item-level revision or partial-decision behavior is introduced.

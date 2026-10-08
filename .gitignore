@@ -11,3 +11,5 @@ supabase/.temp/
 *.enc.json
 *backup-key*.json
 *recovery-key*.json
+
+web-build/
