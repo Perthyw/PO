@@ -165,4 +165,6 @@ Production received no test writes. Early seven-table comparison was equal; live
 
 ## Production release 9 October 2026
 User authorized deployment without editing requisition data. Migration 20261009083925 applied with a transactional seven-table fingerprint guard under table locks: all pre-existing values unchanged, 38 POs and 56 items retained, 115 events/commands/notifications retained. Source function-body hashes match staging for all nine updated RPCs. Final pre-release tests passed 98/98 and syntax check. Application backup captured 15:20 Bangkok includes five newly closed documents. Notifications remain deferred.
-`nOwner action sizing polish: lock/edit pair measured 164x48 CSS pixels each at 1100px and 390px viewports in Edge; no label overflow. CSS only, no data changes.
+
+Owner action sizing polish: lock/edit pair measured 164x48 CSS pixels each at 1100px and 390px viewports in Edge; no label overflow. CSS only, no data changes.
+

@@ -11,3 +11,6 @@ supabase/.temp/
 *.enc.json
 *backup-key*.json
 *recovery-key*.json
+
+# Local scratch and verification sessions
+work/
