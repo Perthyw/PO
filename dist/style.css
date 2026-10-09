@@ -157,3 +157,7 @@ body{background:var(--paper)}button:hover{background:#eaf5ff;border-color:#86b9e
 .history-title-value.history-field-changed{font-weight:700}
 .modal-close{width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border:0;border-radius:50%;background:radial-gradient(circle,#f3f7fb 0 15px,#cdddeb 15.5px 16.5px,transparent 17px);font-size:20px;font-weight:600;line-height:1;display:grid;place-items:center}
 .po-back svg{width:20px;height:20px;display:block;flex:0 0 20px}
+/* Match the paired owner lock/edit actions without sizing unrelated buttons. */
+.product-panel-head .owner-edit-controls{flex-wrap:wrap}
+.product-panel-head .owner-edit-controls>button{height:48px;min-height:48px;padding:10px 16px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;line-height:1.4}
+.product-panel-head .owner-edit-controls>[data-owner-toggle][aria-pressed="true"],.product-panel-head .owner-edit-controls>[data-owner-edit]{width:164px;flex:0 0 164px}
