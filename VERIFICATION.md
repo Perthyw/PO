@@ -8,6 +8,7 @@
 - ตรวจคำขอซ้ำ, version เก่า, lease หมดอายุ/ถูกแทน, เจ้าของถูกปิดบัญชี, ห้ามเพิ่ม/ลบ/สลับรายการ, แผนกเก่าที่เก็บเข้าคลัง และ no-op ที่ไม่สร้างประวัติหรือแจ้งเตือน
 - Excel สามชีตใช้รายการล่าสุด ตัดรายการปฏิเสธออกจากยอดและ VAT และเก็บรายละเอียดก่อน–หลังทุกช่องในชีตประวัติ หมายเหตุเจ้าของแยกจากพนักงาน
 - Browser ตรวจปุ่มปลดล็อกสองขั้น, ×/ยืนยันทิ้งข้อมูล, การแก้หลังปฏิเสธบางส่วน, เหตุผลเก่า, ยอด/VAT ทั้งสองกลุ่ม, หัวตารางแดงอ่อน, ชื่อประวัติภาษาไทย และ viewport 390px ไม่ล้นแนวนอน
+- Owner-toggle regression in `test/owner-workflow-ui.test.mjs` verifies unlock/relock and discarded-edit close retain the same detail shell/product panel and scroll position; focused isolated Playwright test passes.
 - สำเนาสำรอง 38 PO: ข้อมูลทุกคอลัมน์เดิมในทั้ง 7 ตารางตรงกันหลัง migration รวม 56 items, 110 events, 110 notifications และ 110 commands; sequence, constraints และยอดรายงานเดิมคงเดิม ไม่มีการเขียนฐาน production
 - Supabase TEST `tctartzpqrbxhkcgwmmu`: เพิ่ม payment prerequisite และ owner migration แล้วทดสอบ RPC ด้วย authenticated role/JWT subject ภายในธุรกรรมที่ rollback ทั้งหมด ผ่าน 9 checks: สิทธิ์ office, edit/retry, version เก่า, partial/VAT, rejected projection, report/history, receive/close, closed immutable และ rejection คงเดิมหลัง close
 - fingerprint/จำนวนข้อมูลเดิมในฐาน TEST ทั้ง 9 ตารางตรงกันก่อน–หลัง รวม Auth fixture ถูก rollback; ปิด push triggers เฉพาะในธุรกรรม fixture เพื่อไม่ส่งแจ้งเตือนออกนอกระบบ
