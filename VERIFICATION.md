@@ -1,4 +1,33 @@
-# ผลตรวจ PO The Grands — อัปเดต 1 ตุลาคม 2026
+# ผลตรวจ PO The Grands — ชุดเจ้าของแก้ไขและปฏิเสธบางรายการ 9 ตุลาคม 2026
+
+## ผลตรวจชุดที่ยังไม่ commit / deploy
+
+- `npm test`: 98/98 ผ่าน ไม่มี skip รวม SQL/RLS, API, domain, Excel เปิดอ่านกลับ และ Playwright ใน Edge ด้วยข้อมูลสาธิตแยก
+- `npm run check` และ `git diff --check` ผ่าน; strict UI audit: 0 findings
+- เจ้าของต้องปลดล็อกก่อนแก้; แก้หลังอนุมัติบางรายการได้โดยส่งเฉพาะรายการที่ดำเนินต่อ; ปิดแล้วหรือถูกปฏิเสธแก้ไม่ได้
+- ตรวจคำขอซ้ำ, version เก่า, lease หมดอายุ/ถูกแทน, เจ้าของถูกปิดบัญชี, ห้ามเพิ่ม/ลบ/สลับรายการ, แผนกเก่าที่เก็บเข้าคลัง และ no-op ที่ไม่สร้างประวัติหรือแจ้งเตือน
+- Excel สามชีตใช้รายการล่าสุด ตัดรายการปฏิเสธออกจากยอดและ VAT และเก็บรายละเอียดก่อน–หลังทุกช่องในชีตประวัติ หมายเหตุเจ้าของแยกจากพนักงาน
+- Browser ตรวจปุ่มปลดล็อกสองขั้น, ×/ยืนยันทิ้งข้อมูล, การแก้หลังปฏิเสธบางส่วน, เหตุผลเก่า, ยอด/VAT ทั้งสองกลุ่ม, หัวตารางแดงอ่อน, ชื่อประวัติภาษาไทย และ viewport 390px ไม่ล้นแนวนอน
+- สำเนาสำรอง 38 PO: ข้อมูลทุกคอลัมน์เดิมในทั้ง 7 ตารางตรงกันหลัง migration รวม 56 items, 110 events, 110 notifications และ 110 commands; sequence, constraints และยอดรายงานเดิมคงเดิม ไม่มีการเขียนฐาน production
+- Supabase TEST `tctartzpqrbxhkcgwmmu`: เพิ่ม payment prerequisite และ owner migration แล้วทดสอบ RPC ด้วย authenticated role/JWT subject ภายในธุรกรรมที่ rollback ทั้งหมด ผ่าน 9 checks: สิทธิ์ office, edit/retry, version เก่า, partial/VAT, rejected projection, report/history, receive/close, closed immutable และ rejection คงเดิมหลัง close
+- fingerprint/จำนวนข้อมูลเดิมในฐาน TEST ทั้ง 9 ตารางตรงกันก่อน–หลัง รวม Auth fixture ถูก rollback; ปิด push triggers เฉพาะในธุรกรรม fixture เพื่อไม่ส่งแจ้งเตือนออกนอกระบบ
+- token ปลดล็อกอยู่เฉพาะ lease ส่วนตัวและหน่วยความจำ; command เก็บ fingerprint สำหรับ edit retry และไม่เก็บ bearer token
+- โหมดสาธิตรับสินค้า/ปิด PO ต่อจาก overlay ล่าสุดได้ และข้อมูลแก้ไขพร้อมรหัสเดิมยังอยู่หลัง reload รวมข้อมูลทดลองที่เคยใช้รหัสสุ่ม
+
+## ปรับหน้าจอตามภาพตรวจรับ
+
+- ปุ่มปลดล็อก/แก้ไขอยู่ด้านขวาเหนือรายการสินค้า
+- ฟอร์มแก้ไขปรับความกว้างให้พอดี dialog และจัดช่องใหม่เมื่อจอแคบ ไม่มีการซ่อนช่องกรอกเพื่อแก้ overflow
+- เหตุผลไม่อนุมัติอยู่ใต้สินค้านั้นโดยตรง หัวตารางยังเป็นแดงอ่อน ไม่มีกรอบยอดรวมของรายการปฏิเสธ ยอดรวมด้านล่างนับเฉพาะรายการที่ดำเนินต่อ
+- รอบนี้ไม่มีการเปลี่ยน schema/API หรือเขียนฐานข้อมูล และไม่ล้างข้อมูลใน localStorage
+- รายละเอียดก่อน–หลังแสดงเฉพาะสินค้าที่แก้ในเหตุการณ์นั้น และมี × ด้านบนขณะเลื่อน โดยไม่แก้หรือตัดประวัติที่เก็บไว้
+- หมวดไม่อนุมัติใช้การ์ดปกติ แสดงเฉพาะชื่อ/ยอดสินค้าที่ปฏิเสธ และตรึง badge/แถบขั้นตอนไว้ที่ไม่อนุมัติ ไม่แสดงสถานะจริงที่เลื่อนตามสินค้าอื่น
+- ค่าหลังแก้ไขที่เปลี่ยนแสดงสีเขียว กากบาทในประวัติมีขนาดกระชับ ลูกศรกลับอยู่กลางปุ่ม และไม่แสดงข้อความ “เวลาไทย” โดยตัวจัดรูปแบบเวลายังคงใช้ Asia/Bangkok
+- หน้าต่างประวัติใช้แนวนอนที่กว้างขึ้นและหลายคอลัมน์บนคอมพิวเตอร์ ส่วนมือถือเรียงลงโดยไม่ล้นแนวนอน ความกว้างของหน้าต่างแก้ไข/อนุมัติอื่นไม่เปลี่ยนตาม
+
+ข้อจำกัด: ผล Supabase ด้านบนเป็น PostgreSQL RPC ไม่ใช่ browser ที่เข้าสู่ระบบด้วย Supabase Auth จริง การตรวจรับสอง browser/session พร้อมกันผ่าน Auth/REST และการส่ง push จริงยังต้องทำใน staging ก่อน production ส่วน optimistic version/lease/idempotency ถูกทดสอบแล้ว ชุด 117 tests ที่อ้างจากไฟล์ทดลองเดิมไม่มีไฟล์ทดสอบให้รัน จึงไม่อ้างว่ารันซ้ำแล้ว ไม่ได้เปิดหรือรีเซ็ต storage ของไฟล์ทดลอง
+
+## หลักฐานเดิมก่อนชุดแก้ไขนี้ — 1 ตุลาคม 2026
 
 ## อัตโนมัติ
 
@@ -124,3 +153,14 @@
 
 ## Login placeholder and PO arrow navigation — 2026-10-03
 87/87 tests pass, syntax/whitespace checks pass and strict UI audit has zero findings. Navigation tests cover text boundaries, selection, IME/modifiers, native control exemptions, disabled fields, focus, no wrapping and no form submission. Existing actual-app jsdom payment checks remain passing. Production browser keyboard interaction remains unobserved in this session.
+
+## Real staging acceptance — 9 October 2026
+
+Separate project tctartzpqrbxhkcgwmmu passed 16 real Auth/REST checks, 17 authorization/audit/concurrency checks, 10 Edge workflow and Excel readback checks and four disabled QA login checks. Owner, primary office, regular office and outsider used distinct temporary accounts. All original rows across eleven staging tables match pre-test fingerprints. Four QA POs and histories remain retained; accounts disabled after testing.
+
+Browser editing changed every accepted-item field. Partial rejection, receipt and closure used the same fixture; a stale edit was rejected while retaining its draft. Excel readback verified every current field, one accepted fixture row and one changed-item history row. REST contention had one winner, a stale-version loser, one persisted version/event and cached retry. Exact earlier audit deltas [0,200000] cents with separate staff/owner notes.
+
+Production received no test writes. Early seven-table comparison was equal; live production later gained five close events. Final count remains 38 POs, all 56 item rows and original 110 events unchanged. Whole production state was not frozen. Notifications deferred by user; intrinsic in-app records from PO commands are not notification acceptance. No commit/push/deploy. Advisor retains intentional guarded definer RPC warnings and an existing leaked-password-protection warning.
+
+## Production release 9 October 2026
+User authorized deployment without editing requisition data. Migration 20261009083925 applied with a transactional seven-table fingerprint guard under table locks: all pre-existing values unchanged, 38 POs and 56 items retained, 115 events/commands/notifications retained. Source function-body hashes match staging for all nine updated RPCs. Final pre-release tests passed 98/98 and syntax check. Application backup captured 15:20 Bangkok includes five newly closed documents. Notifications remain deferred.

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {stripTypeScriptTypes} from 'node:module';
 import vm from 'node:vm';
-const source=stripTypeScriptTypes(readFileSync(new URL('../supabase/functions/manage-user/index.ts',import.meta.url),'utf8').replace(/^import .*;\n/,''));
+const source=stripTypeScriptTypes(readFileSync(new URL('../supabase/functions/manage-user/index.ts',import.meta.url),'utf8').replace(/^import .*;\r?\n/,''));
 const ownerId='11111111-1111-4111-8111-111111111111';
 const officeId='22222222-2222-4222-8222-222222222222';
 async function invoke(body,{target=null,conflict=null,lookupError=null,caller='owner',authenticated=true}={}){

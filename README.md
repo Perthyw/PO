@@ -1,5 +1,7 @@
 # PO The Grands
 
+> รุ่นเจ้าของแก้ไขและไม่อนุมัติบางรายการ วันที่ 9 ตุลาคม 2569: ผ่านการตรวจรับและทดสอบฐานแยกแล้ว ผู้ใช้อนุมัติให้นำขึ้นเว็บจริง โดยรักษาเอกสารและข้อมูลใบเดิมทุกใบ ไม่รวมงานแจ้งเตือน ดู OWNER-WORKFLOW-ROLLOUT.md และ VERIFICATION.md
+
 ระบบเปิด อนุมัติ และติดตามใบขอซื้อ (PO) สำหรับทีมจัดซื้อของ The Grands ทำงานแยกจากระบบ Grandhouse ทั้งซอร์สโค้ด บัญชีผู้ใช้ ฐานข้อมูล และการเผยแพร่ เว็บสำหรับพัฒนาในเครื่องทำงานที่ [http://localhost:4180](http://localhost:4180)
 
 > สถานะปัจจุบัน: deploy schema และ `manage-user` ไป Supabase project PO แล้ว; ทดสอบ owner/office, disabled login, session reload, Supabase refresh และ offline recovery แล้ว; เว็บหลักที่ผู้ใช้ deploy คือ [PO The Grands บน Vercel](https://po-thegrands.vercel.app/) ตรวจไฟล์และ assets แล้วตรงกับ `dist/` ใน repo; เว็บ Sites เดิมยังคงเป็นรุ่นก่อนหน้าแบบ owner-only
@@ -814,3 +816,4 @@ Auth user มีอยู่ แต่ไม่มีแถว UUID เดีย
 - ชื่อบัญชีพนักงานไม่จำกัดจำนวนตัวอักษรแล้ว แต่ยังรับเฉพาะตัวอักษรอังกฤษ ตัวเลข จุด และขีดล่าง และต้องไม่ซ้ำ
 - อัปเดตฟังก์ชัน `manage-user` และ `owner-account` บน Supabase แล้ว
 - ทดสอบชุดระบบผ่าน 87 ข้อ
+

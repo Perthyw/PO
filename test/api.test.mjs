@@ -14,7 +14,7 @@ test('REST adapter: login, paging, create payload, report, failed network and ex
     if(expired)return Response.json({message:'expired'},{status:401});
     if(url.includes('/token?')||(url.includes('/owner-account')&&JSON.parse(init.body).action==='login'))return Response.json({access_token:'test-access',refresh_token:'test-refresh',expires_in:3600,user:{id:'office'}});
     if(url.includes('/profiles?'))return Response.json([{id:'office',role:'office',display_name:'ออฟฟิศ'}]);
-    if(url.includes('/purchase_orders?'))return Response.json([],{headers:{'content-range':'10-19/24'}});
+    if(url.includes('/rpc/list_po'))return Response.json({rows:[],total:24,page:2,per_page:10});
     if(url.includes('/departments?'))return Response.json([{name:'อาหาร'},{name:'ออฟฟิศ'}]);
     if(url.includes('/rpc/create_po'))return Response.json({id:'created'});
     if(url.includes('/rpc/monthly_po_report'))return Response.json({rows:[],total_cents:0,ordered_count:0,pending_count:0,rejected_count:0});
@@ -30,9 +30,17 @@ test('REST adapter: login, paging, create payload, report, failed network and ex
     assert.equal(savedAccount.password,'654321');
     const result=await api.list('approved',2);
     assert.equal(result.total,24);
-    assert.match(calls.at(-1).url,/offset=10/);
-    assert.match(calls.at(-1).url,/status=eq.approved/);
+    assert.match(calls.at(-1).url,/rpc\/list_po/);
+    assert.deepEqual(JSON.parse(calls.at(-1).init.body),{p_status:'approved',p_page:2,p_scope:'mine'});
     assert.equal(calls.at(-1).init.headers.Authorization,'Bearer test-access');
+    await api.unlockPO('po-1',3,'unlock-key');
+    assert.deepEqual(JSON.parse(calls.at(-1).init.body),{p_id:'po-1',p_version:3,p_request_id:'unlock-key'});
+    await api.editPO({poId:'po-1',expectedVersion:3,token:'lease-token',key:'edit-key',items:[{line_no:1,name:'item',department:'อาหาร',spec:'spec',source:'store',note:'note',qty:'1',unit:'box',unit_price:'10',vat:false,decision:'rejected',decision_reason:'immutable',base_cents:1000}]});
+    assert.deepEqual(JSON.parse(calls.at(-1).init.body).p_items,[{line_no:1,department:'อาหาร',name:'item',spec:'spec',source:'store',note:'note',qty:'1',unit:'box',unit_price:'10',vat:false}]);
+    await api.decidePO({poId:'po-1',expectedVersion:3,rejectedLineNos:[2],reason:'reason',approvalNote:'note',key:'decision-key'});
+    assert.deepEqual(JSON.parse(calls.at(-1).init.body),{p_id:'po-1',p_version:3,p_rejected_line_nos:[2],p_reason:'reason',p_approval_note:'note',p_request_id:'decision-key'});
+    await api.lockPO('po-1','lease-token');
+    assert.deepEqual(JSON.parse(calls.at(-1).init.body),{p_id:'po-1',p_token:'lease-token'});
     assert.deepEqual(await api.departments(),['อาหาร','ออฟฟิศ']);
     await api.addDepartment('สาขาใหม่');
     assert.deepEqual(JSON.parse(calls.at(-1).init.body),{p_action:'add',p_name:'สาขาใหม่'});

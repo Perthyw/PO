@@ -6,14 +6,14 @@ Business authority: PRODUCT.md (2026-09-25 explicit user request). Supabase setu
 
 | Capability | Canonical owner | Source of truth | Allowed variants | Verification |
 |---|---|---|---|---|
-| Form | field(), errorField(), validateItems() | PRODUCT.md | create/review/login/reason | domain tests + browser |
+| Form | field(), errorField(), validateItems() | PRODUCT.md | create/review/login/reason/owner edit/item decision | domain tests + browser |
 | Scrollbar | dist/style.css global baseline | DESIGN.md | page/table/modal | narrow browser inspection |
 | Toast | notify() and #toast live region | this contract | success only after committed result | browser |
-| CRUD | api.js, create_po(), act_on_po(), manage-user | PRODUCT.md + current user decisions | PO lifecycle and owner-managed office accounts | database/API tests |
+| CRUD | api.js, create_po(), act_on_po(), unlock_po_edit(), edit_po_items(), decide_po_items(), manage-user | PRODUCT.md + current user decisions | PO lifecycle, owner item edits and decisions, owner-managed office accounts | database/API tests |
 | Dialog | openModal() native dialog | this contract | confirm/reason/discard | focus/Escape/browser |
 | Date | PostgreSQL now(), domain.date() | PRODUCT.md | display only; no picker | database + browser |
 
-Select/Listbox and Table Selection are not applicable (no dropdown or bulk selection).
+Select/Listbox remains platform-native where used. Item rejection uses native checkboxes in the existing command dialog; selection is limited to the pending PO's stable line numbers, never a page or all-results selection.
 
 ## Flow ledger
 
@@ -61,3 +61,20 @@ Capture and remove callback URL secrets before session restoration. Validate Aut
 
 ## PO arrow navigation
 `navigatePOForm` in `dist/form-navigation.js` owns optional arrow-key navigation for the create form. Left/Up move backward at the start of text; Right/Down move forward at its end. Number fields move directly. Preserve selections, IME composition, modified shortcuts and native date/radio/checkbox/datalist behavior. Skip unavailable controls, do not wrap or submit, and retain standard Tab navigation. Login username has a visible label and no example placeholder.
+
+## Owner edit and item decisions
+
+Business authority: PRODUCT.md, “Owner edits and item decisions — approved scope, 9 October 2026”. Preserve existing Thai visual tokens, layout and shared field, error, modal, pending and toast primitives.
+
+- Owner detail → padlock unlock → enabled edit action → existing modal variant → save through authoritative RPC → refreshed detail and committed success feedback. Unlock tokens stay in memory; cancellation, successful save, navigation or actor changes restore locked UI. Database role/state/version validation applies even when the API is called directly.
+- Owner unlock/edit controls sit at the right of the product panel heading above the accepted item table, rather than the lifecycle panel.
+- The edit modal fits its available width without horizontal scrolling; fields and fieldsets may shrink and number controls wrap on narrow screens. Long forms retain vertical scrolling and a sticky top-right ×. ×, cancel and Escape share the same unsaved-change guard; continue editing preserves the draft, discard closes and restores focus. Pending writes block dismissal. Failures retain input and show inline recovery guidance.
+- Native controls expose labels and group errors. Existing unspecified payment information remains a visible historical option; unchanged archived department names remain visible. Rejected lines are shown read-only and cannot be submitted as editable lines.
+- Approve-all and reject-selected share the decision flow. Reject-selected requires at least one checked line and a reason, states that all remaining lines will be approved, and allows a separate owner approval note when accepted lines remain. Decision UUID remains stable across an unchanged retry; changed payload receives a new UUID.
+- Detail separates active and rejected lines with a pale-red rejected table heading. Each rejection reason appears directly beneath its product/specification/staff note in the product cell. Rejected detail shows rows without a separate rejected totals box. One summary beneath both tables totals only accepted lines. The real PO tracker continues only for accepted lines; rejected cards keep their rejected display status.
+- Rejected filtering and count are computed on the server and retain existing 10-row pagination and scope permissions. Counts may overlap actual lifecycle counts. Empty, error and loading states retain the existing list frame.
+- Edit history lists only owner_edit events, changed item names, editor, Bangkok time and delta. The before/after dialog includes only changed products, matched by stable line number, and exposes a sticky top-right × plus Escape and restored trigger focus. Legacy rejection reasons remain readable without rewriting old events.
+- Rejected category reuses the normal PO card layout with only rejected names/amount, a fixed rejected badge and a fixed tracker (opened first step, later steps unfilled). Do not display the real lifecycle note on this card or advance its tracker when accepted lines receive/close. This projection never changes the real PO lifecycle.
+- History highlights only changed after-values in green, including derived totals that changed, with an accessible changed indication. Before-values and unchanged after-values retain normal text. History close glyph is compact while its hit area remains usable; PO back arrows use a centered SVG. Audit date formatting remains Bangkok time without a visible “เวลาไทย” suffix.
+- The history dialog uses a wider landscape layout on desktop, with before/after panels and multiple field columns inside each panel. Long notes span the panel width; narrow screens stack naturally without horizontal overflow. Other dialog widths remain unchanged.
+- Excel uses the visible monthly report's latest data and separate staff/owner notes. Its third sheet contains edit history and never changes monthly totals.
